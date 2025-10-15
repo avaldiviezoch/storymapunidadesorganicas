@@ -2,98 +2,126 @@
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>La Aventura — Regalo interactivo</title>
 
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;700;900&display=swap" rel="stylesheet">
 
   <style>
-    :root{ --pink:#ff60b4; --blue:#72efff; --wallX:40px; --wallTop:60px; --wallBottom:85px; }
-    html,body{height:100%}
-    body{ margin:0; background:#111; color:#f9f9f9; font-family: Inconsolata, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    a{ text-decoration:none; color:#f9f9f9 }
-    #out-all{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; }
+    /* ===== Variables responsivas ===== */
+    :root{
+      --wallX: 40px;           /* margen paredes laterales (zona libre) */
+      --wallTop: 60px;         /* techo libre */
+      --wallBottom: 85px;      /* suelo libre */
+      --heroSize: clamp(76px, 12vw, 110px);
+      --chestSize: clamp(68px, 10vw, 100px);
+      --dialogFS: clamp(18px, 3.8vw, 22px);
+      --btnFS: clamp(18px, 3.8vw, 25px);
+    }
 
+    html,body{height:100%}
+    body{
+      margin:0; background:#111; color:#f9f9f9;
+      font-family: Inconsolata, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      touch-action: manipulation; /* reduce zoom doble tap */
+    }
+    a{ text-decoration:none; color:#f9f9f9 }
+    #out-all{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px;
+    }
+
+    /* ===== Pantallas marco ===== */
     .frame{
-      position:absolute; width:720px; max-width:94vw; min-height:300px; max-height:86vh;
+      position:absolute; width:min(720px, 96vw); min-height:300px; max-height:86vh;
       display:none; align-items:center; justify-content:center; flex-direction:column;
       background:#111; box-shadow:0 10px 40px rgba(0,0,0,.4); border-radius:12px; padding:20px;
       text-align:center; gap:8px;
     }
     #f1{display:flex}
 
-    .decidir{display:flex; align-items:center; justify-content:center; flex-wrap:wrap}
+    .decidir{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px}
     .btn{
-      font:25px 'VT323', monospace; margin:10px; opacity:0; animation:visible 1s .6s forwards;
-      cursor:pointer; color:#f9f9f9; padding:8px 14px; border-radius:10px; border:1px dashed rgba(255,255,255,.18)
+      font:var(--btnFS) 'VT323', monospace; margin:10px; opacity:0; animation:visible .9s .3s forwards;
+      cursor:pointer; color:#f9f9f9; padding:10px 16px; border-radius:10px; border:1px dashed rgba(255,255,255,.18);
+      user-select:none;
     }
-    .btn:focus{ outline:2px dashed var(--blue); outline-offset:2px }
+    .btn:focus{ outline:2px dashed #72efff; outline-offset:2px }
 
     h1,h2,h3{margin:6px 10px}
     h1{
       overflow:hidden; border-right:.15em solid #fff; white-space:nowrap; letter-spacing:.03em;
-      animation: typing 2.8s steps(38,end), blink-caret .75s step-end infinite;
-      font:30px 'VT323', monospace;
+      animation: typing 2.6s steps(38,end), blink-caret .75s step-end infinite;
+      font: clamp(22px, 5vw, 30px) 'VT323', monospace;
     }
-    h2,h3{font:26px 'VT323', monospace}
+    h2,h3{font: clamp(20px, 4.5vw, 26px) 'VT323', monospace}
 
-    /* Mundo (cueva retro) */
+    /* ===== Mundo (cueva retro) ===== */
     #f7{
-      position:absolute; width:850px; max-width:95vw; height:550px; max-height:85vh;
+      position:absolute; width:min(900px, 98vw); height:min(620px, 90vh);
       background:url(https://i.imgur.com/kx3psEN.png) center/cover no-repeat;
       display:none; align-items:center; justify-content:center; flex-direction:column;
       border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.45);
       overflow:hidden;
     }
 
-    /* Diálogos en cajas responsivas (no salen de las paredes) */
+    /* Diálogos en cajas (no salen de paredes) */
     .dialogBox{ position:absolute; left:var(--wallX); right:var(--wallX); display:none; }
-    #f8, #f9 { bottom:150px; }
-    #f11      { top:120px; }
+    #f8, #f9 { bottom: clamp(90px, 16vh, 150px); }
+    #f11      { top: clamp(70px, 12vh, 120px); }
     .dialogInner{
       margin:0 auto;
-      max-width:min(620px, calc(100% - 16px));
+      max-width:min(620px, calc(100% - 12px));
       background:rgba(0,0,0,.75);
       border:1px solid rgba(255,255,255,.18);
       border-radius:12px; padding:12px 14px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
-      font:22px 'VT323', monospace; line-height:1.35;
-      white-space:normal; word-break:break-word;
-      text-align:center;
+      font:var(--dialogFS) 'VT323', monospace; line-height:1.35;
+      white-space:normal; word-break:break-word; text-align:center;
     }
     .dialogInner p{ margin:.25em 0; }
 
-    #f10{position:absolute; bottom:140px; left:var(--wallX); right:var(--wallX); height:160px; display:none; align-items:center; justify-content:center; gap:20px;}
+    /* Zona de cofres */
+    #f10{
+      position:absolute; bottom: clamp(70px, 15vh, 140px);
+      left:var(--wallX); right:var(--wallX);
+      display:none; align-items:center; justify-content:center; gap: clamp(12px, 3.5vw, 22px);
+    }
     .box{
-      width:100px; height:100px; background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat;
-      cursor:pointer; transition:transform .12s ease;
+      width:var(--chestSize); height:var(--chestSize);
+      background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat;
+      cursor:pointer; transition:transform .12s ease; flex:0 0 auto;
+      image-rendering: pixelated;
     }
     .box.wiggle{ animation: wiggle .45s ease-in-out infinite; }
     .box.opened{ background:url(https://i.imgur.com/FIrcwmM.png) center/cover no-repeat; transform:translateY(-2px); }
 
+    /* Pantallas internas */
     #f12,#f18{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column;}
     #f13{display:none; text-align:center}
     #f13 a{display:inline-block; margin-top:10px}
-    #f14,#f15{background:#111; position:absolute; inset:0; font:26px 'VT323', monospace; text-align:justify; display:none; padding:28px; line-height:1.35;}
+    #f14,#f15{background:#111; position:absolute; inset:0; font: clamp(18px, 4vw, 26px) 'VT323', monospace; text-align:justify; display:none; padding:clamp(16px, 4vw, 28px); line-height:1.35;}
     #f16,#f17{position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px}
-    .ring{width:150px; height:150px; background:url(https://i.imgur.com/oEs8TdL.png) center/cover no-repeat}
-    .ichigo{width:200px; height:200px; background:url(https://i.imgur.com/hGY3pGX.png) center/cover no-repeat}
+    .ring{width: clamp(110px, 18vw, 150px); height: clamp(110px, 18vw, 150px); background:url(https://i.imgur.com/oEs8TdL.png) center/cover no-repeat}
+    .ichigo{width: clamp(140px, 22vw, 200px); height: clamp(140px, 22vw, 200px); background:url(https://i.imgur.com/hGY3pGX.png) center/cover no-repeat}
     #f19,#f20,#f21,#f22{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px;}
-    #f22{font:26px 'VT323', monospace; text-align:justify}
+    #f22{font: clamp(18px, 4vw, 26px) 'VT323', monospace; text-align:justify}
 
+    /* Avatar presentación (f6) */
     .img1{
-      width:120px; height:120px;
+      width: clamp(90px, 14vw, 120px); height: clamp(90px, 14vw, 120px);
       background:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000) center/contain no-repeat;
       margin-bottom:8px; border-radius:14px; padding:6px;
       background-color:rgba(255,255,255,.02);
       outline:1px solid rgba(255,255,255,.08);
       box-shadow:0 6px 18px rgba(0,0,0,.25);
+      image-rendering: pixelated;
     }
 
-    /* Héroe movible */
+    /* ===== Héroe movible ===== */
     #hero{
-      position:absolute; width:110px; height:110px;
+      position:absolute; width:var(--heroSize); height:var(--heroSize);
       pointer-events:none; z-index:20;
       background-position:center; background-repeat:no-repeat; background-size:contain;
       border-radius:16px; padding:6px;
@@ -109,7 +137,7 @@
     .dir-left  { background-image:url(https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000); } /* IZQ     */
     .dir-right { background-image:url(https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000); } /* DER     */
 
-    /* Globo del mago (cerca de cofres) */
+    /* Hint del mago (cerca de cofres) */
     #wizardHint{ position:absolute; left:var(--wallX); right:var(--wallX); top:var(--wallTop); display:none; z-index:50; }
     #wizardHint .dialogInner{ margin:0 auto; }
 
@@ -119,7 +147,7 @@
     }
     #confirm .panel{
       background:#111; border:1px solid rgba(255,255,255,.2); border-radius:12px; padding:16px 18px;
-      font:22px 'VT323', monospace; text-align:center; width:min(420px, 92vw);
+      font: clamp(18px, 4vw, 22px) 'VT323', monospace; text-align:center; width:min(420px, 92vw);
       box-shadow:0 20px 60px rgba(0,0,0,.5);
     }
     #confirm .actions{ margin-top:12px; display:flex; gap:12px; justify-content:center; }
@@ -128,7 +156,7 @@
     /* Botón audio */
     #audioToggle{
       position:fixed; right:12px; bottom:12px; z-index:9999;
-      font:18px 'VT323', monospace; padding:8px 12px; border-radius:10px;
+      font: clamp(16px, 3.8vw, 18px) 'VT323', monospace; padding:8px 12px; border-radius:10px;
       background:#1d1d1d; color:#fff; border:1px solid rgba(255,255,255,.15);
       cursor:pointer; user-select:none;
     }
@@ -144,17 +172,16 @@
       75%{ transform:translateY(-1px) }
     }
 
+    /* ===== Ajustes extra móvil ===== */
     @media (max-width:560px){
-      :root{ --wallX:20px; --wallTop:40px; --wallBottom:70px; }
-      h1,h2,h3{font-size:22px}
-      #hero{ width:96px; height:96px; }
-      .img1{ width:100px; height:100px; }
-      .dialogInner{ font-size:20px; }
+      :root{
+        --wallX: 20px; --wallTop: 40px; --wallBottom: 70px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- AUDIO GLOBAL (mejor compatibilidad) -->
+  <!-- AUDIO GLOBAL -->
   <audio id="bgm" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000"
          autoplay loop playsinline></audio>
   <div id="audioToggle">🔊 Música</div>
@@ -202,7 +229,7 @@
     </div>
 
     <!-- MUNDO -->
-    <div id="f7">
+    <div id="f7" aria-label="cueva jugable">
       <!-- Hint cerca de cofres -->
       <div id="wizardHint" class="dialogBox">
         <div class="dialogInner">
@@ -232,9 +259,9 @@
       </div>
 
       <div id="f10">
-        <div class="box ca1" data-target="f12"></div>
-        <div class="box ca2" data-target="f18"></div>
-        <div class="box ca3" data-target="f15"></div>
+        <div class="box ca1" data-target="f12" aria-label="Cofre 1"></div>
+        <div class="box ca2" data-target="f18" aria-label="Cofre 2"></div>
+        <div class="box ca3" data-target="f15" aria-label="Cofre 3"></div>
       </div>
 
       <div id="f11" class="dialogBox">
@@ -305,7 +332,7 @@
   </div>
 
   <!-- Confirmador -->
-  <div id="confirm">
+  <div id="confirm" role="dialog" aria-modal="true" aria-label="Confirmación">
     <div class="panel">
       <div>¿Estás segura?</div>
       <div class="actions">
@@ -321,9 +348,7 @@
     function showBlock(sel){ $(sel).css('display','block'); }
     function hide(sel){ $(sel).css('display','none'); }
 
-    /* ===== AUDIO: mejor práctica de autoplay =====
-       1) Intento normal (sonido).
-       2) Si falla, hago autoplay silenciado y des-silencio al primer gesto. */
+    /* ===== AUDIO: autoplay + fallback táctil ===== */
     (function(){
       const audio = document.getElementById('bgm');
       const btn = document.getElementById('audioToggle');
@@ -342,9 +367,8 @@
       }
 
       audio.play().then(()=>{/* ok */}).catch(()=>{
-        // Autoplay bloqueado: reproducimos en mute y esperamos gesto
-        audio.muted = true;
-        audio.play().finally(unlockOnGesture);
+        audio.muted = true;           // reproduce en silencio
+        audio.play().finally(unlockOnGesture); // y habilita sonido al primer gesto
       });
 
       btn.addEventListener('click', ()=>{
@@ -353,31 +377,38 @@
       });
     })();
 
-    /* ===== HÉROE + cofres “tiemblan” al pasar cerca; abren solo con click + confirm ===== */
+    /* ===== HÉROE + Controles: teclado y DESLIZ táctil ===== */
     (function(){
-      const hero = { el:null, x:0, y:0, w:110, h:110, speed:3.2, dir:'up' };
+      const hero = { el:null, x:0, y:0, w:0, h:0, speed:3.2, dir:'up' };
       const keys = { up:false, down:false, left:false, right:false };
       let running = false, canMove = false;
 
       const css = getComputedStyle(document.documentElement);
-      const bounds = {
-        top: parseInt(css.getPropertyValue('--wallTop')) || 60,
-        left: parseInt(css.getPropertyValue('--wallX'))  || 40,
-        right:parseInt(css.getPropertyValue('--wallX'))  || 40,
-        bottom:parseInt(css.getPropertyValue('--wallBottom')) || 85
-      };
+      function boundsObj(){
+        return {
+          top: parseInt(css.getPropertyValue('--wallTop')) || 60,
+          left: parseInt(css.getPropertyValue('--wallX'))  || 40,
+          right:parseInt(css.getPropertyValue('--wallX'))  || 40,
+          bottom:parseInt(css.getPropertyValue('--wallBottom')) || 85
+        };
+      }
+      let bounds = boundsObj();
 
-      // Puerta: que empiece un poco “afuera”
+      // Empieza un poco “afuera”
       const doorOutsideFactor = 0.28;
 
       function start(){
         const pf = document.getElementById('f7');
         hero.el = document.getElementById('hero');
+        hero.w = parseInt(getComputedStyle(hero.el).width);
+        hero.h = parseInt(getComputedStyle(hero.el).height);
         const W = pf.clientWidth, H = pf.clientHeight;
         hero.x = W/2;
         hero.y = H - hero.h*(0.5 - doorOutsideFactor);
         place();
         if(!running){ running = true; requestAnimationFrame(loop); }
+        attachTouchControls(pf);
+        window.addEventListener('resize', ()=>{ bounds = boundsObj(); });
       }
 
       function place(){ hero.el.style.left = hero.x+'px'; hero.el.style.top = hero.y+'px'; }
@@ -393,7 +424,7 @@
           if(keys.right) vx += hero.speed;
           if(keys.up)    vy -= hero.speed;
           if(keys.down)  vy += hero.speed;
-          if(vx && vy){ vx*=0.7071; vy*=0.7071; }
+          if(vx && vy){ vx*=0.7071; vy*=0.7071; } // 45°
         }
 
         hero.x += vx; hero.y += vy;
@@ -403,7 +434,6 @@
           const minY = bounds.top  + hero.h/2;
           const maxX = W - (bounds.right + hero.w/2);
           const maxY = H - (bounds.bottom + hero.h/2);
-
           if(hero.x < minX) hero.x = minX;
           if(hero.y < minY) hero.y = minY;
           if(hero.x > maxX) hero.x = maxX;
@@ -429,6 +459,7 @@
         hero.dir = d;
       }
 
+      /* ==== Teclado ==== */
       function key(e,down){
         const k = e.key.toLowerCase();
         if(['arrowup','w'].includes(k)){ keys.up = down; e.preventDefault(); }
@@ -439,9 +470,48 @@
       window.addEventListener('keydown', e=>key(e,true), {passive:false});
       window.addEventListener('keyup',   e=>key(e,false), {passive:false});
 
-      // Cofres: “tiembla” al pasar cerca
+      /* ==== Desliz táctil / pointer (joystick virtual simple) ==== */
+      function attachTouchControls(surface){
+        let touching = false;
+        let startX=0, startY=0;
+
+        surface.addEventListener('pointerdown', (e)=>{
+          if(!canMove) return;    // no activar hasta que se permita
+          touching = true;
+          startX = e.clientX; startY = e.clientY;
+          setFromDelta(0,0);      // limpia
+        }, {passive:true});
+
+        surface.addEventListener('pointermove', (e)=>{
+          if(!touching || !canMove) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          setFromDelta(dx, dy);
+          e.preventDefault();     // evita scroll mientras arrastras
+        }, {passive:false});
+
+        const stop = ()=>{
+          touching = false;
+          keys.up = keys.down = keys.left = keys.right = false;
+        };
+        surface.addEventListener('pointerup', stop, {passive:true});
+        surface.addEventListener('pointercancel', stop, {passive:true});
+
+        function setFromDelta(dx,dy){
+          const dead = 8; // zona muerta mínima
+          keys.left = keys.right = keys.up = keys.down = false;
+          if(Math.abs(dx) < dead && Math.abs(dy) < dead) return;
+          if(Math.abs(dx) > Math.abs(dy)){
+            if(dx>0) keys.right = true; else keys.left = true;
+          }else{
+            if(dy>0) keys.down = true; else keys.up = true;
+          }
+        }
+      }
+
+      // “Temblor” de cofres al acercarse
       function chestProximity(){
-        if(!canMove) return hide('#wizardHint');
+        if(!canMove){ hide('#wizardHint'); return; }
         const heroRect = hero.el.getBoundingClientRect();
         let near = false;
         document.querySelectorAll('#f10 .box').forEach(box=>{
@@ -449,46 +519,44 @@
           const cx = r.left + r.width/2, cy = r.top + r.height/2;
           const hx = heroRect.left + heroRect.width/2, hy = heroRect.top + heroRect.height/2;
           const dist = Math.hypot(cx-hx, cy-hy);
-          if(dist < 140){ box.classList.add('wiggle'); near = true; }
+          const threshold = Math.max(120, parseInt(getComputedStyle(box).width) * 1.2);
+          if(dist < threshold){ box.classList.add('wiggle'); near = true; }
           else{ box.classList.remove('wiggle'); }
         });
         if(near) showFlex('#wizardHint'); else hide('#wizardHint');
       }
 
-      // Confirmador genérico
+      // Confirmador reutilizable
       function openConfirm(onOk){
         const $c = $('#confirm'); showFlex('#confirm');
         $c.find('.ok').off('click').on('click', ()=>{ hide('#confirm'); onOk(); });
         $c.find('.cancel').off('click').on('click', ()=>{ hide('#confirm'); });
       }
 
-      // Abrir cofre con confirmación y pasar a la fase target
+      // Cofres: click → confirma → abre y salta de fase
       function attachChestClicks(){
         $('#f10 .box').each(function(){
           const $box = $(this);
           const target = '#'+$box.data('target'); // f12, f15, f18
-
           $box.on('click', function(){
             openConfirm(()=>{
               $box.addClass('opened');
-              // pasar a su fase
               hide('#f7'); hide('#wizardHint'); showBlock(target);
-              if(target==='#f12'){ showBlock('#f13'); }         // carta: primero pantalla de “reproduce…”
-              if(target==='#f15'){ showFlex('#f16'); }          // anillos: toma anillo
-              if(target==='#f18'){ showFlex('#f19'); }          // final: diálogo
+              if(target==='#f12'){ showBlock('#f13'); }
+              if(target==='#f15'){ showFlex('#f16'); }
+              if(target==='#f18'){ showFlex('#f19'); }
             });
           });
         });
       }
 
-      // API pública para flujo
+      // API pública para el flujo
       window.__heroCtrl = {
         start,
         enable:()=>{ canMove=true; },
-        disable:()=>{ canMove=false; }
+        disable:()=>{ canMove=false; keys.up=keys.down=keys.left=keys.right=false; }
       };
 
-      // iniciar click handlers de cofres ya
       attachChestClicks();
     })();
 
@@ -510,15 +578,15 @@
       // Entrar al mundo
       $('.afi').on('click', function(){
         hide('#f6'); showFlex('#f7'); showFlex('#f8');
-        __heroCtrl.start();    // la deja en la “puerta”
-        __heroCtrl.disable();  // sin movimiento hasta que salgan las cajas
+        __heroCtrl.start();    // la pone en la “puerta”
+        __heroCtrl.disable();  // no se mueve hasta las cajas
       });
 
       $('.salu').on('click', function(){ hide('#f8'); showFlex('#f9'); });
 
       $('.copy').on('click', function(){
         hide('#f9'); showFlex('#f10'); showFlex('#f11');
-        __heroCtrl.enable();   // ahora sí puede moverse
+        __heroCtrl.enable();   // ahora sí puede moverse (teclado + dedo)
       });
 
       // Carta
