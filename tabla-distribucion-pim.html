@@ -1,1 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Distribución del PIM por oficina</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{--ink:#0b2532;--muted:#64748b;--card:#fff;--bg:#eef5f3;--line:#e6ecea;--panel:#f7fbfa;--sel:#e8f5e9}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+  .wrap{max-width:1220px;margin:auto;padding:16px;display:grid;gap:16px}
+
+  /* encabezado global */
+  .page-title{
+    text-align:center;
+    font-weight:800;
+    margin:0 0 6px 0;
+    font-size:clamp(18px,2.6vw,26px);
+  }
+
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+
+  /* KPIs centrados */
+  .kpis{grid-column:span 8;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .kpi{background:#0b3b38;color:#fff;border-radius:12px;padding:12px;display:grid;place-items:center;text-align:center}
+  .kpi h4{margin:0 0 4px 0;font-size:13px;opacity:.95}
+  .kpi .val{font-size:22px;font-weight:800}
+
+  /* Velocímetro centrado con icono de limpiar */
+  .gauge{grid-column:span 4;min-height:230px;display:grid;grid-template-rows:auto 1fr;gap:8px;position:relative}
+  .g-title{font-weight:700;text-align:center;margin:0}
+  .g-sub{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
+  #gauge{width:100%;height:190px;place-self:center}
+
+  .icon-btn{
+    position:absolute; top:10px; right:10px;
+    width:32px;height:32px;display:grid;place-items:center;
+    border:1px solid var(--line); background:#fff; border-radius:10px;
+    cursor:pointer; font-size:18px; line-height:1;
+  }
+  .icon-btn:hover{background:#fafafa}
+
+  /* Tabla */
+  .table-card{grid-column:span 12}
+  table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  thead th{background:var(--panel);text-align:center;font-size:13px;color:var(--ink);font-weight:700;padding:10px;border-bottom:1px solid var(--line)}
+  tbody td{padding:10px;border-bottom:1px solid var(--line);font-size:14px}
+  tbody tr:hover{background:#fafafa;cursor:pointer}
+  tbody tr.selected{background:var(--sel)}
+  /* centra #, Suma PIM y %; deja izquierda para “Oficina (Ejecutora)” */
+  tbody td:nth-child(1), tbody td:nth-child(3), tbody td:nth-child(4){text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 class="page-title">Distribución del PIM por oficina</h1>
+
+  <div class="grid">
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi"><h4>PIA</h4><div id="kpiPIA" class="val">—</div></div>
+      <div class="kpi"><h4>PIM</h4><div id="kpiPIM" class="val">—</div></div>
+      <div class="kpi"><h4>Certificado</h4><div id="kpiCERT" class="val">—</div></div>
+      <div class="kpi"><h4>Compromiso Anual</h4><div id="kpiCOMP" class="val">—</div></div>
+      <div class="kpi"><h4>Devengado</h4><div id="kpiDEV" class="val">—</div></div>
+      <div class="kpi"><h4>Girado</h4><div id="kpiGIR" class="val">—</div></div>
+    </div>
+
+    <!-- Velocímetro -->
+    <div class="gauge card">
+      <button id="btnReset" class="icon-btn" title="Limpiar selección">↺</button>
+      <div>
+        <p class="g-title">Avance de ejecución</p>
+        <p class="g-sub">Devengado / PIM</p>
+      </div>
+      <div id="gauge"></div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-card card">
+      <div style="overflow:auto;max-height:56vh">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Oficina (Ejecutora)</th>
+              <th>Suma PIM</th>
+              <th>% del PIM total</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================== CONFIG ================== */
+const SERVICE = "https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
+const WHERE_BASE = "sector_nombre = 'VIVIENDA CONSTRUCCION Y SANEAMIENTO' AND ano_eje = 2025";
+
+const F = {
+  pia: "monto_pia",
+  pim: "monto_pim",
+  cert:"monto_certificado",
+  comp:"monto_comprometido_anual",
+  dev:"monto_devengado",
+  gir:"monto_girado",
+  ue: "sec_ejec",
+  ejecutora: "ejecutora_nombre"
+};
+
+/* ================== HELPERS ================== */
+const toM = v => (v||0)/1e6;
+const fmtM = v => `${toM(v).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})} mill.`;
+const fmtPct = v => (v==null||isNaN(v)) ? "—" : `${v.toFixed(1)}%`;
+const avance = (dev,pim)=> (!pim||pim<=0)?0:(dev/pim*100);
+
+/* ================== REST QUERIES via fetch ================== */
+async function restQuery(params){
+  const qs = new URLSearchParams(params);
+  const url = SERVICE + "?" + qs.toString();
+  const res = await fetch(url, { cache: "no-store" });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const json = await res.json();
+  if(json.error) throw new Error(json.error.message || "Error del servicio");
+  return json;
+}
+
+async function getTotals(where){
+  const outStats = JSON.stringify([
+    { statisticType:"sum", onStatisticField:F.pia,  outStatisticFieldName:"sum_pia"  },
+    { statisticType:"sum", onStatisticField:F.pim,  outStatisticFieldName:"sum_pim"  },
+    { statisticType:"sum", onStatisticField:F.cert, outStatisticFieldName:"sum_cert" },
+    { statisticType:"sum", onStatisticField:F.comp, outStatisticFieldName:"sum_comp" },
+    { statisticType:"sum", onStatisticField:F.dev,  outStatisticFieldName:"sum_dev"  },
+    { statisticType:"sum", onStatisticField:F.gir,  outStatisticFieldName:"sum_gir"  }
+  ]);
+  const data = await restQuery({ where, outStatistics: outStats, returnGeometry:"false", f:"json" });
+  const a = data.features?.[0]?.attributes || {};
+  return { pia:+a.sum_pia||0, pim:+a.sum_pim||0, cert:+a.sum_cert||0, comp:+a.sum_comp||0, dev:+a.sum_dev||0, gir:+a.sum_gir||0 };
+}
+
+async function getAggByEjecutora(where){
+  const outStats = JSON.stringify([
+    { statisticType:"sum", onStatisticField:F.pim, outStatisticFieldName:"sum_pim" },
+    { statisticType:"sum", onStatisticField:F.pia, outStatisticFieldName:"sum_pia" },
+    { statisticType:"sum", onStatisticField:F.dev, outStatisticFieldName:"sum_dev" },
+    { statisticType:"sum", onStatisticField:F.cert,outStatisticFieldName:"sum_cert" },
+    { statisticType:"sum", onStatisticField:F.comp,outStatisticFieldName:"sum_comp" },
+    { statisticType:"sum", onStatisticField:F.gir, outStatisticFieldName:"sum_gir" }
+  ]);
+  const data = await restQuery({
+    where,
+    groupByFieldsForStatistics: `${F.ejecutora},${F.ue}`,
+    outFields: `${F.ejecutora},${F.ue}`,
+    outStatistics: outStats,
+    orderByFields: "sum_pim DESC",
+    returnGeometry:"false",
+    f:"json"
+  });
+  return data.features?.map(f=>{
+    const a=f.attributes||{};
+    return {
+      key: a[F.ue] ?? "(Sin UE)",
+      name: a[F.ejecutora] ?? "(Sin nombre)",
+      pia: +a.sum_pia||0, pim:+a.sum_pim||0, dev:+a.sum_dev||0,
+      cert:+a.sum_cert||0, comp:+a.sum_comp||0, gir:+a.sum_gir||0
+    };
+  }) || [];
+}
+
+/* ================== UI ================== */
+let selectedKey = null;
+
+// Velocímetro centrado y con ticks 0..100 cada 20
+const gauge = echarts.init(document.getElementById('gauge'));
+function setGauge(pct){
+  const v = Math.max(0, Math.min(100, pct||0));
+  const option = {
+    series:[{
+      type:'gauge',
+      min:0, max:100,
+      startAngle: 220, endAngle: -40,
+      splitNumber: 5,                    // 0,20,40,60,80,100
+      center: ['50%','62%'], radius:'92%',
+      pointer:{ show:true, width:4, length:'58%' },
+      progress:{ show:true, width:12, roundCap:true },
+      axisLine:{ lineStyle:{ width:12, color:[[0.30,'#e74c3c'],[0.70,'#f39c12'],[1,'#2ecc71']]}},
+      axisTick:{ show:false },
+      splitLine:{ length:12, lineStyle:{ width:2, color:'#c0c7cd' } },
+      axisLabel:{ distance:12, fontSize:12, color:'#4b5563', formatter: v=> String(v) },
+      title:{ show:false },
+      detail:{
+        valueAnimation:true,
+        fontSize:15, fontWeight:800,
+        offsetCenter:[0,'26%'],
+        formatter:(val)=> `${val}%`
+      },
+      data:[{ value:+v.toFixed(1) }]
+    }]
+  };
+  gauge.setOption(option);
+}
+
+function renderKPIs(t){
+  document.getElementById('kpiPIA').textContent  = fmtM(t.pia);
+  document.getElementById('kpiPIM').textContent  = fmtM(t.pim);
+  document.getElementById('kpiCERT').textContent = fmtM(t.cert);
+  document.getElementById('kpiCOMP').textContent = fmtM(t.comp);
+  document.getElementById('kpiDEV').textContent  = fmtM(t.dev);
+  document.getElementById('kpiGIR').textContent  = fmtM(t.gir);
+  setGauge(avance(t.dev,t.pim));
+}
+
+function renderTable(rows, totalPIM){
+  const tb = document.getElementById('tbody'); tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const tr=document.createElement('tr'); tr.dataset.key = r.key;
+    const pct = !totalPIM ? 0 : r.pim/totalPIM*100;
+    tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td>${fmtM(r.pim)}</td><td>${fmtPct(pct)}</td>`;
+    tr.addEventListener('click', async ()=>{
+      if(selectedKey === r.key){
+        // Toggle: deseleccionar → volver a totales
+        selectedKey = null;
+        renderKPIs(window.__totalsBase);
+        highlightSelection(null);
+      }else{
+        selectedKey = r.key;
+        const whereSel = `${WHERE_BASE} AND ${F.ue}='${String(r.key).replace(/'/g,"''")}'`;
+        const t = await getTotals(whereSel);
+        renderKPIs(t);
+        highlightSelection(r.key);
+      }
+    });
+    tb.appendChild(tr);
+  });
+}
+
+function highlightSelection(key){
+  document.querySelectorAll('#tbody tr').forEach(tr=>{
+    if(key && tr.dataset.key===key) tr.classList.add('selected'); else tr.classList.remove('selected');
+  });
+}
+
+/* ================== INIT ================== */
+(async function init(){
+  try{
+    const [totals, rows] = await Promise.all([ getTotals(WHERE_BASE), getAggByEjecutora(WHERE_BASE) ]);
+    const totalPIM = totals.pim || rows.reduce((s,r)=>s+r.pim,0);
+    window.__totalsBase = totals; // para reset rápido
+    renderKPIs(totals);
+    renderTable(rows, totalPIM);
+
+    // Icono ↺ para limpiar
+    document.getElementById('btnReset').addEventListener('click', ()=>{
+      selectedKey = null;
+      renderKPIs(window.__totalsBase);
+      highlightSelection(null);
+    });
+  }catch(err){
+    console.error(err);
+    alert("Error consultando el servicio: " + (err?.message || err));
+  }
+})();
+</script>
+</body>
+</html>
 
