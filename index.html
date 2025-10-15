@@ -124,31 +124,16 @@
       <div class="sub">Pasa el mouse / foco o haz clic en un enlace para ver la vista. Fíjala si necesitas interactuar.</div>
     </header>
 
-    <!-- Columna izquierda -->
+    <!-- Lista única (sin categorías) -->
     <div class="left">
-      <!-- DASHBOARDS -->
-      <section class="card" aria-labelledby="t-dash">
-        <div class="title" id="t-dash">📈 Dashboards</div>
+      <section class="card" aria-labelledby="t-lista">
+        <div class="title" id="t-lista">📂 Lista</div>
         <div class="grid">
-          <a class="btn"  id="link-ccpp"  href="./propuestaccppdispersos.html"  target="_blank" rel="noopener">Propuesta CCPP Dispersos</a>
-          <a class="btn v2" id="link-ccpp2" href="./propuestaccppdispersos2.html" target="_blank" rel="noopener">Propuesta CCPP Dispersos — v2</a>
-          <a class="btn v3" id="link-ccpp3" href="./propuestaccppdispersos3.html" target="_blank" rel="noopener">Propuesta CCPP Dispersos — v3</a>
-        </div>
-      </section>
-
-      <!-- VISORES -->
-      <section class="card" aria-labelledby="t-vis">
-        <div class="title" id="t-vis">🗺️ Visores</div>
-        <div class="grid">
-          <!-- vacío por ahora -->
-        </div>
-      </section>
-
-      <!-- OTROS -->
-      <section class="card" aria-labelledby="t-otros">
-        <div class="title" id="t-otros">🧰 Otros</div>
-        <div class="grid">
-          <!-- vacío por ahora -->
+          <a class="btn"  id="link-1" href="./cuadro-ejec-presup.html"       target="_blank" rel="noopener">Cuadro — Ejecución Presup.</a>
+          <a class="btn v2" id="link-2" href="./cuando-por-oficina.html"      target="_blank" rel="noopener">Cuadro por Oficina</a>
+          <a class="btn v3" id="link-3" href="./grafic-dispersion-presup.html" target="_blank" rel="noopener">Gráfico — Dispersión Presup.</a>
+          <a class="btn v4" id="link-4" href="./presupuesto-vs-dev.html"      target="_blank" rel="noopener">Presupuesto vs. Devengado</a>
+          <a class="btn"  id="link-5" href="./tabla-distribucion-pim.html"    target="_blank" rel="noopener">Tabla — Distribución PIM</a>
         </div>
       </section>
     </div>
@@ -261,7 +246,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', ()=>{
-      const first = document.getElementById('link-ccpp');
+      const first = document.getElementById('link-1');
       if(first) previewLink(first);
     });
   </script>
