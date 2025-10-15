@@ -5,13 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>La Aventura — Regalo interactivo</title>
 
-  <!-- (Opcional) Font Awesome Pro v5; si no tienes licencia, quítalo -->
-  <link href="https://kit-pro.fontawesome.com/releases/v5.15.1/css/pro.min.css" rel="stylesheet"/>
-
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 
   <style>
     :root{ --pink:#ff60b4; --blue:#72efff; }
@@ -50,18 +46,23 @@
     }
     h2,h3{font:26px 'VT323', monospace}
 
-    /* Mundo */
+    /* Mundo (cueva retro) */
     #f7{
       position:absolute; width:850px; max-width:95vw; height:550px; max-height:85vh;
       background:url(https://i.imgur.com/kx3psEN.png) center/cover no-repeat;
       display:none; align-items:center; justify-content:center; flex-direction:column;
       border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.45);
+      overflow:hidden;
     }
+
+    /* Texto/cofres */
     #f8,#f9{position:absolute; bottom:150px; left:150px; right:150px; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center;}
     #f10{position:absolute; bottom:140px; left:150px; right:150px; height:160px; display:none; align-items:center; justify-content:center;}
     .box{width:100px; height:100px; background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat; margin:20px; cursor:pointer; transition:transform .15s ease}
     .box:hover{background:url(https://i.imgur.com/FIrcwmM.png) center/cover no-repeat; transform:translateY(-2px)}
     #f11{position:absolute; top:120px; transform:scale(.7); display:none; flex-direction:column; text-align:center;}
+
+    /* Cartas, anillos, etc. */
     #f12,#f18{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column;}
     #f13{display:none; text-align:center}
     #f13 a{display:inline-block; margin-top:10px}
@@ -69,39 +70,44 @@
     #f16,#f17{position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px}
     .ring{width:150px; height:150px; background:url(https://i.imgur.com/oEs8TdL.png) center/cover no-repeat}
     .ichigo{width:200px; height:200px; background:url(https://i.imgur.com/hGY3pGX.png) center/cover no-repeat}
-
     #f19,#f20,#f21,#f22{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px;}
     #f22{font:26px 'VT323', monospace; text-align:justify}
 
-    /* ===== AVATARES AJUSTADOS (más pequeños y proporcionales) ===== */
-    /* Frente */
+    /* Avatar frente (pantalla f6) */
     .img1{
-      width:120px; height:120px;           /* más pequeño */
-      background-image:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000);
-      background-repeat:no-repeat;
-      background-position:center;
-      background-size:contain;              /* conserva proporción (no “engorda”) */
-      margin-bottom:8px;
-      border-radius:14px;                   /* “forma” más amable */
-      padding:6px;                          /* pequeño respiro alrededor */
+      width:120px; height:120px;
+      background:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000) center/contain no-repeat;
+      margin-bottom:8px; border-radius:14px; padding:6px;
       background-color:rgba(255,255,255,.02);
       outline:1px solid rgba(255,255,255,.08);
       box-shadow:0 6px 18px rgba(0,0,0,.25);
     }
 
-    /* Espaldas (mundo) */
-    #ico{
-      position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-      width:120px; height:120px;            /* más pequeño */
-      background-image:url(https://lh3.googleusercontent.com/d/1mSX8bhUoXpRKsKlufh9bKKX2JsckTxvP=w1000);
-      background-repeat:no-repeat;
-      background-position:center;
-      background-size:contain;              /* conserva proporción */
-      border-radius:16px;
-      padding:6px;
+    /* ====== HÉROE MOVIBLE (usa tus 4 sprites) ====== */
+    #hero{
+      position:absolute; width:110px; height:110px;
+      /* lo dejaremos centrado en X y en la “puerta” exacta con JS */
+      pointer-events:none; z-index:20;
+      background-position:center; background-repeat:no-repeat; background-size:contain;
+      border-radius:16px; padding:6px;
       background-color:rgba(0,0,0,.18);
       outline:1px solid rgba(255,255,255,.07);
       box-shadow:0 10px 28px rgba(0,0,0,.35);
+      image-rendering: pixelated;
+      transform: translate(-50%, -50%); /* las coordenadas que use JS serán el centro */
+      left:50%; top:50%;                 /* valores iniciales (serán reemplazados) */
+    }
+    .dir-up    { background-image:url(https://lh3.googleusercontent.com/d/1mSX8bhUoXpRKsKlufh9bKKX2JsckTxvP=w1000); } /* ESPALDAS */
+    .dir-down  { background-image:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000); } /* FRENTE  */
+    .dir-left  { background-image:url(https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000); } /* IZQ     */
+    .dir-right { background-image:url(https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000); } /* DER     */
+
+    /* Botón de audio */
+    #audioToggle{
+      position:fixed; right:12px; bottom:12px; z-index:9999;
+      font:18px 'VT323', monospace; padding:8px 12px; border-radius:10px;
+      background:#1d1d1d; color:#fff; border:1px solid rgba(255,255,255,.15);
+      cursor:pointer; user-select:none;
     }
 
     /* Animaciones */
@@ -109,19 +115,23 @@
     @keyframes blink-caret{from,to{border-color:transparent} 50%{border-color:#fff}}
     @keyframes visible{from{opacity:0} to{opacity:1}}
 
-    /* Responsive: aún más pequeños en móviles */
     @media (max-width:560px){
       h1,h2,h3{font-size:22px}
       #f11{transform:scale(.9)}
-      .img1, #ico{ width:100px; height:100px; }
+      #hero{ width:96px; height:96px; }
+      .img1{ width:100px; height:100px; }
     }
   </style>
 </head>
 <body>
+  <!-- AUDIO GLOBAL (autoplay con fallback) -->
+  <audio id="bgm" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000"
+         autoplay loop playsinline></audio>
+  <div id="audioToggle">🔊 Música</div>
+
   <div id="out-all">
 
-    <!-- NUEVO FLUJO DE PREGUNTAS -->
-    <!-- Q1 -->
+    <!-- PREGUNTAS INICIALES -->
     <div id="f1" class="frame">
       <h1>¿Quieres saber algo de mí?</h1>
       <div class="decidir">
@@ -130,12 +140,8 @@
       </div>
     </div>
 
-    <!-- Q1 -> NO -->
-    <div id="close1" class="frame">
-      <h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2>
-    </div>
+    <div id="close1" class="frame"><h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2></div>
 
-    <!-- Q2 -->
     <div id="f2new" class="frame">
       <h3>A veces las parejas pelean, a veces tú te cansas de repetir cosas a tu pareja, pero no significa que no te escuche: solo que hace las cosas diferente…</h3>
       <div class="decidir">
@@ -144,12 +150,8 @@
       </div>
     </div>
 
-    <!-- Q2 -> NO -->
-    <div id="close2" class="frame">
-      <h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2>
-    </div>
+    <div id="close2" class="frame"><h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2></div>
 
-    <!-- Q3 -->
     <div id="f3new" class="frame">
       <h3>Antonio dice que no significa que no te ame; hace todo por ti y te da detalles —no siempre en los mismos días— y también se frustra cuando le dices cosas que no hace.</h3>
       <div class="decidir">
@@ -158,7 +160,6 @@
       </div>
     </div>
 
-    <!-- Q3 -> cualquiera -->
     <div id="f4new" class="frame">
       <h3>Si no quieres seguir en esta aventura, es entendible, pero él se supera cada día y espera seguir.</h3>
       <div class="decidir">
@@ -167,45 +168,39 @@
       </div>
     </div>
 
-    <!-- Q4 -> NO -->
-    <div id="f5new" class="frame">
-      <h3>Antonio recibió un correo electrónico diciendo que pusiste “no seguir aventura” :(</h3>
-    </div>
+    <div id="f5new" class="frame"><h3>Antonio recibió un correo electrónico diciendo que pusiste “no seguir aventura” :(</h3></div>
 
-    <!-- A PARTIR DE AQUÍ CONTINÚA EL JUEGO ORIGINAL -->
-    <!-- f6 -->
+    <!-- INICIO DEL JUEGO -->
     <div id="f6" class="frame" style="display:none">
       <div class="img1"></div>
       <h3>esta eres tú, con tu pelo un poco largo y tu ropa amarilla en tendencia; jugaremos un juego: tienes que escoger algo del poderoso mago.</h3>
       <div class="btn afi">Comenzar !!!</div>
     </div>
 
-    <!-- Mundo -->
+    <!-- MUNDO (con movimiento desbloqueable) -->
     <div id="f7">
-      <div id="ico"></div>
+      <!-- Héroe inicia parado en la puerta (abajo) mirando hacia arriba -->
+      <div id="hero" class="dir-up"></div>
 
+      <!-- Secuencia de diálogo antes de moverse -->
       <div id="f8">
-        <!-- CAMBIADO -->
         <h1>Hoooola lucero, soy un poderoso mago y jugaremos a las cajas escondidas</h1>
         <div class="decidir"><div class="btn salu">Hola????</div></div>
       </div>
 
       <div id="f9">
-        <!-- CAMBIADO -->
         <h1>aqui hay 3 cajas escoje bien porque de eso dependar tu futuro , Wuajajajajaja</h1>
         <div class="decidir"><div class="btn copy">Moverme</div></div>
       </div>
 
+      <!-- Al mostrar f10 y f11 se habilita el movimiento -->
       <div id="f10">
         <div class="box ca1"></div>
-        <div la class="box ca2"></div>
+        <div class="box ca2"></div>
         <div class="box ca3"></div>
       </div>
 
-      <!-- CAMBIADO (solo un texto corto) -->
-      <div id="f11">
-        <h3>escoge con sabiduria!!</h3>
-      </div>
+      <div id="f11"><h3>escoge con sabiduria!!</h3></div>
     </div>
 
     <!-- Cofre 1 -->
@@ -218,11 +213,7 @@
       </div>
 
       <div id="f14">
-        Si alguien me hubiera preguntado siete meses atrás si creía volver a darme la oportunidad de estar con alguien, me habría reído en su cara. No es que no crea en el amor, o que sienta que soy demasiado bueno para ello, sino que es más bien todo lo contrario. "No lo merezco", repetía, pero, ¿es que no lo merecía? ¿o que estaba demasiado asustado de abrirme a alguien que no fueran mis amistades? Hasta el día de hoy, aún no encuentro la respuesta, pero sé, bastante bien, que sí merezco ser amado, y me lo has enseñado tú en estos pocos meses que llevas tomando mi manito. 
-        <br><br>
-        No soy bueno con las palabras, eso siempre ha sido lo tuyo. Pero si hay algo en lo que sé que puedo cumplir, es haciendo cositas. Espero que guardes este pequeño regalito como algo que te recuerde que tú también mereces amor, que estamos juntos en esto y que sin importar qué tantas inseguridades se pongan en nuestro camino, siempre nos tendremos el uno al otro para apoyarnos.
-        <br><br>
-        No miento cuando digo que eres mi todo, Ichigo. Agradezco cada día que hayas llegado a mi vida, y espero que quieras quedarte acá mucho tiempo más.
+        Si alguien me hubiera preguntado siete meses atrás si creía volver a darme la oportunidad de estar con alguien, me habría reído en su cara...
         <br><br>
         <div class="btn carta">&gt; vuelves a abrir las otras cajas.</div>
       </div>
@@ -269,22 +260,144 @@
       </div>
 
       <div id="f22">
-        me gustaría decir que tengo un final para esta historia, pero, ambos sabemos que apenas estamos comenzando, ¿cierto? no hay cómo acabar si la aventura todavía está verde. 
-        <br><br>
-        el único final que quiero contigo es uno feliz, dónde termines de leer esto, vengas a mis brazos y me beses. ¿Sería eso mucho pedir? 
+        me gustaría decir que tengo un final para esta historia, pero, ambos sabemos que apenas estamos comenzando...
       </div>
     </div>
-
   </div>
 
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
     function showFlex(sel){ $(sel).css('display','flex'); }
     function showBlock(sel){ $(sel).css('display','block'); }
     function hide(sel){ $(sel).css('display','none'); }
 
+    // ======== AUDIO GLOBAL ========
+    (function(){
+      const audio = document.getElementById('bgm');
+      const btn = document.getElementById('audioToggle');
+      audio.volume = 0.35;
+
+      function tryPlay(){
+        audio.play().then(()=>{ /* ok */ }).catch(()=>{
+          // algunos navegadores bloquean autoplay con sonido hasta interacción
+          const resume = () => {
+            audio.muted = false;
+            audio.play().catch(()=>{ /* si falla, no hacemos nada */ });
+            window.removeEventListener('click', resume);
+            window.removeEventListener('keydown', resume);
+          };
+          window.addEventListener('click', resume, {once:true});
+          window.addEventListener('keydown', resume, {once:true});
+        });
+      }
+      tryPlay();
+
+      btn.addEventListener('click', ()=>{
+        if(audio.muted){ audio.muted = false; btn.textContent = '🔊 Música'; audio.play().catch(()=>{}); }
+        else{ audio.muted = true; btn.textContent = '🔇 Silencio'; }
+      });
+    })();
+
+    // ======== CONTROL DE MOVIMIENTO DEL HÉROE (bloqueable) =========
+    (function(){
+      const hero = { el:null, x:0, y:0, w:110, h:110, speed:3.2, dir:'up' };
+      const keys = { up:false, down:false, left:false, right:false };
+      let running = false;
+      let canMove = false; // se habilita recién con las cajas
+
+      // límites internos (ajústalos si quieres):
+      const bounds = { top:60, left:40, right:40, bottom:120 }; // más fondo para no pisar la muralla
+
+      // “puerta” exacta: centrado y a 115px del borde inferior
+      const doorOffsetBottom = 115;
+
+      // Preload sprites
+      [
+        "https://lh3.googleusercontent.com/d/1mSX8bhUoXpRKsKlufh9bKKX2JsckTxvP=w1000",
+        "https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000",
+        "https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000",
+        "https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000"
+      ].forEach(src=>{ const i=new Image(); i.src=src; });
+
+      function start(){
+        const pf = document.getElementById('f7');
+        hero.el = document.getElementById('hero');
+        const W = pf.clientWidth, H = pf.clientHeight;
+        // Coloca al centro X y puerta Y exacta (coordenadas = centro visual por transform)
+        hero.x = W/2;
+        hero.y = H - doorOffsetBottom;
+        place();
+        if(!running){ running = true; requestAnimationFrame(loop); }
+      }
+
+      function place(){
+        hero.el.style.left = hero.x + 'px';
+        hero.el.style.top  = hero.y + 'px';
+      }
+
+      function loop(){
+        if(!running) return;
+        const pf = document.getElementById('f7');
+        const W = pf.clientWidth, H = pf.clientHeight;
+
+        let vx = 0, vy = 0;
+        if(canMove){
+          if(keys.left)  vx -= hero.speed;
+          if(keys.right) vx += hero.speed;
+          if(keys.up)    vy -= hero.speed;
+          if(keys.down)  vy += hero.speed;
+          if(vx && vy){ vx*=0.7071; vy*=0.7071; }
+        }
+
+        hero.x += vx; hero.y += vy;
+
+        // límites (en coordenadas de centro)
+        const minX = bounds.left + hero.w/2;
+        const minY = bounds.top  + hero.h/2;
+        const maxX = W - (bounds.right + hero.w/2);
+        const maxY = H - (bounds.bottom + hero.h/2);
+
+        if(hero.x < minX) hero.x = minX;
+        if(hero.y < minY) hero.y = minY;
+        if(hero.x > maxX) hero.x = maxX;
+        if(hero.y > maxY) hero.y = maxY;
+
+        if(canMove){
+          if(vx>0){ setDir('right'); }
+          else if(vx<0){ setDir('left'); }
+          else if(vy>0){ setDir('down'); }
+          else if(vy<0){ setDir('up'); }
+        }
+
+        place();
+        requestAnimationFrame(loop);
+      }
+
+      function setDir(d){
+        if(hero.dir===d) return;
+        hero.el.classList.remove('dir-up','dir-down','dir-left','dir-right');
+        hero.el.classList.add('dir-'+d);
+        hero.dir = d;
+      }
+
+      function key(e,down){
+        const k = e.key.toLowerCase();
+        if(['arrowup','w'].includes(k)){ keys.up = down; e.preventDefault(); }
+        if(['arrowdown','s'].includes(k)){ keys.down = down; e.preventDefault(); }
+        if(['arrowleft','a'].includes(k)){ keys.left = down; e.preventDefault(); }
+        if(['arrowright','d'].includes(k)){ keys.right = down; e.preventDefault(); }
+      }
+
+      window.addEventListener('keydown', e=>key(e,true), {passive:false});
+      window.addEventListener('keyup',   e=>key(e,false), {passive:false});
+
+      // API para el flujo
+      window.__heroCtrl = {
+        start, enable:()=>{ canMove=true; }, disable:()=>{ canMove=false; }
+      };
+    })();
+
+    // ======== FLUJO / DIÁLOGOS =========
     $(function(){
       // Arranque en Q1 (#f1)
       showFlex('#f1');
@@ -303,40 +416,39 @@
       // Q4
       $('.q4-no').on('click', function(){ hide('#f4new'); showFlex('#f5new'); });
       $('.q4-seguir').on('click', function(){
-        // Continuar con el juego: saltamos al flujo original (f6 -> f7 ...)
         hide('.frame'); // cierra frames de preguntas
         showFlex('#f6');
       });
 
-      // ====== Flujo original ======
-      $('.afi').on('click', function(){ hide('#f6'); showFlex('#f7'); showFlex('#f8'); });
-      $('.salu').on('click', function(){ hide('#f8'); showFlex('#f9'); });
-      $('.copy').on('click', function(){ hide('#f9'); showFlex('#f10'); showFlex('#f11'); });
+      // Entrar al mundo: Lucero queda en la puerta, sin moverse todavía
+      $('.afi').on('click', function(){
+        hide('#f6'); showFlex('#f7'); showFlex('#f8');
+        __heroCtrl.start();     // coloca a Lucero en la puerta exacta
+        __heroCtrl.disable();   // movimiento bloqueado hasta que aparezcan cajas
+      });
 
-      // Cofre 1
+      // Diálogo con mago → respuesta de Lucero
+      $('.salu').on('click', function(){ hide('#f8'); showFlex('#f9'); });
+
+      // Mostrar cajas y texto → AHORA se habilita el movimiento
+      $('.copy').on('click', function(){
+        hide('#f9'); showFlex('#f10'); showFlex('#f11');
+        __heroCtrl.enable();    // movimiento habilitado recién aquí
+      });
+
+      // Cofres / resto del flujo
       $('.ca1').on('click', function(){ showFlex('#f12'); showBlock('#f13'); });
       $('.go').on('click', function(){ hide('#f13'); showBlock('#f14'); });
       $('.carta').on('click', function(){ hide('#f12'); });
 
-      // Cofre 3
       $('.ca3').on('click', function(){ showBlock('#f15'); showFlex('#f16'); });
       $('.anillo').on('click', function(){ hide('#f16'); showFlex('#f17'); });
       $('.marry').on('click', function(){ hide('#f15'); hide('#f17'); });
 
-      // Cofre 2
       $('.ca2').on('click', function(){ showBlock('#f18'); showFlex('#f19'); });
       $('.meme').on('click', function(){ hide('#f19'); showFlex('#f20'); });
       $('.meme2').on('click', function(){ hide('#f20'); showFlex('#f21'); });
       $('.yes').on('click', function(){ hide('#f21'); showFlex('#f22'); });
-
-      // Accesibilidad
-      $('.btn').attr('tabindex','0').attr('role','button');
-      $(document).on('keydown', function(e){
-        if(e.key === 'Enter' || e.key === ' '){
-          const el = document.activeElement;
-          if($(el).is('.btn')){ e.preventDefault(); $(el).click(); }
-        }
-      });
     });
   </script>
 </body>
