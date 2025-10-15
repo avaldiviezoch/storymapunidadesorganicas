@@ -1,1 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Presupuesto vs. Devengado por oficina y % de ejecución</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#ffffff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
+    --head-bg:#e9eff6;
+    --fs-body:13.6px; --fs-head:13.6px;
+    --w-name:560px; --w-num:180px; --w-pct:120px;
+  }
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,Segoe UI,Roboto,Arial;overflow:hidden}
+  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:10px}
+  .card{flex:1;max-width:1200px;background:#fff;border:1px solid var(--line);
+        border-radius:10px;box-shadow:0 10px 24px rgba(2,6,23,.06);
+        display:flex;flex-direction:column;overflow:hidden}
+  .header{padding:12px;border-bottom:1px solid var(--line);text-align:center}
+  .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,22px);text-align:center}
+
+  .table-wrap{flex:1 1 auto;min-height:0;overflow:auto}
+  table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:var(--fs-body)}
+  thead th{position:sticky;top:0;z-index:5;background:var(--head-bg);color:#0b2532;
+           font-weight:800;text-align:center;padding:8px;border-bottom:2px solid #cbd5e1;font-size:var(--fs-head)}
+  thead th:first-child{text-align:left;padding-left:12px}
+  tbody td{padding:8px;border-bottom:1px solid var(--line);background:#fff;vertical-align:middle}
+  tbody td:first-child{text-align:left;padding-left:12px}
+  .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pct{text-align:center;font-variant-numeric:tabular-nums}
+  .hint{padding:6px 10px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line)}
+  @media (max-width:1000px){ :root{--w-name:460px;--w-num:160px;--w-pct:110px;--fs-body:12.8px} }
+  @media (max-width:820px){  :root{--w-name:380px;--w-num:150px;--w-pct:100px;--fs-body:12.2px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <h2 class="title">Presupuesto vs. Devengado por oficina y % de ejecución</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tbl" aria-label="Presupuesto vs. Devengado por Oficina">
+        <colgroup>
+          <col style="width:var(--w-name)">
+          <col style="width:var(--w-num)">
+          <col style="width:var(--w-num)">
+          <col style="width:var(--w-pct)">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Oficina (Ejecutora)</th>
+            <th>Suma de monto_pim</th>
+            <th>Suma de monto_devengado</th>
+            <th>Suma de % avance</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="hint">* Fuente: MEF — Mapa Inversiones (OGEI) · Capa 13</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVICE = "https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
+const WHERE   = "sector_nombre = 'VIVIENDA CONSTRUCCION Y SANEAMIENTO' AND ano_eje = 2025";
+
+const F = { ejecutora:"ejecutora_nombre", pim:"monto_pim", dev:"monto_devengado" };
+const NF  = new Intl.NumberFormat('es-PE');
+const PCT = (d,p)=> (!p||p<=0)?0:(d/p*100);
+
+async function fetchData(){
+  const outStats = JSON.stringify([
+    {statisticType:"sum",onStatisticField:F.pim,outStatisticFieldName:"sum_pim"},
+    {statisticType:"sum",onStatisticField:F.dev,outStatisticFieldName:"sum_dev"}
+  ]);
+  const qs = new URLSearchParams({
+    where: WHERE,
+    groupByFieldsForStatistics: F.ejecutora,
+    outFields: F.ejecutora,
+    outStatistics: outStats,
+    returnGeometry: "false",
+    f: "json"
+  });
+  const res = await fetch(`${SERVICE}?${qs}`, {cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j = await res.json();
+  if(j.error) throw new Error(j.error.message || "Error del servicio");
+  return (j.features||[]).map(f=>{
+    const a=f.attributes||{};
+    const pim=+a.sum_pim||0, dev=+a.sum_dev||0;
+    return { ejecutora: a[F.ejecutora] || "(Sin ejecutora)", pim, dev, pct: PCT(dev,pim) };
+  });
+}
+
+let rows = [], sortKey='pct', sortDir='desc';
+
+function render(){
+  const TB = document.getElementById('tbody');
+  const data = [...rows].sort((a,b)=>{
+    const m = sortDir==='asc'?1:-1;
+    if(sortKey==='ejecutora') return a.ejecutora.localeCompare(b.ejecutora,'es')*m;
+    return (a[sortKey]-b[sortKey])*m;
+  });
+  TB.innerHTML = data.map(r=>`
+    <tr>
+      <td>${r.ejecutora}</td>
+      <td class="num">${NF.format(r.pim)}</td>
+      <td class="num">${NF.format(r.dev)}</td>
+      <td class="pct">${isFinite(r.pct)?Math.round(r.pct)+'%':'—'}</td>
+    </tr>`).join('');
+}
+
+function enableSorting(){
+  const heads = document.querySelectorAll('#tbl thead th');
+  heads.forEach((th,i)=>{
+    th.style.cursor='pointer';
+    th.addEventListener('click', ()=>{
+      sortKey = ['ejecutora','pim','dev','pct'][i];
+      sortDir = (sortDir==='asc'?'desc':'asc');
+      render();
+    });
+  });
+}
+
+(async ()=>{
+  try{
+    rows = await fetchData();
+    sortKey='pct'; sortDir='desc';
+    render();
+    enableSorting();
+  }catch(err){
+    console.error(err);
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="4" style="text-align:center;color:#b91c1c;padding:24px">
+         Error al cargar datos: ${err?.message||'Fallo del servicio'}
+       </td></tr>`;
+  }
+})();
+</script>
+</body>
+</html>
 
