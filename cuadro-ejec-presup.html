@@ -1,1 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ejecución presupuestal por programa presupuestal</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#fff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
+    --w-name:420px;     /* Primera columna más estrecha */
+    --w-num:150px;      /* columnas estándar */
+    --w-last:180px;     /* última columna un poco más amplia */
+    --w-pad:30px;       /* espaciador invisible a la derecha */
+    --fs-body:13.4px; --fs-head:13.4px;
+  }
+
+  html,body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,Segoe UI,Roboto,Arial;
+    overflow:hidden;
+  }
+
+  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:10px}
+  .card{
+    flex:1;max-width:1400px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 10px 24px rgba(2,6,23,.06);
+    display:flex;flex-direction:column;overflow:hidden
+  }
+  .header{padding:10px;border-bottom:1px solid var(--line);text-align:center}
+  .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,24px);text-align:center}
+
+  .table-wrap{
+    flex:1 1 auto;min-height:0;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  table{
+    width:100%;
+    min-width:1060px;
+    border-collapse:separate;border-spacing:0;
+    table-layout:fixed;
+    font-size:var(--fs-body);
+  }
+
+  thead th{
+    position:sticky;top:0;z-index:5;
+    background:#e9eff6;color:#0b2532;font-weight:800;
+    text-align:center;padding:9px;
+    border-bottom:2px solid #cbd5e1;font-size:var(--fs-head);
+    white-space:normal;word-break:break-word;overflow-wrap:anywhere;
+  }
+  thead th:first-child{ text-align:center; } 
+  thead th.pad{ background:#e9eff6; border-bottom:2px solid #cbd5e1 }
+
+  tbody td,tbody th{
+    padding:8px 10px;border-bottom:1px solid var(--line);
+    background:#fff;vertical-align:middle;
+    word-break:break-word;white-space:normal;
+  }
+
+  tbody th.sticky, tbody td.sticky{
+    text-align:left; position:sticky; left:0; z-index:4; background:#f8fafc;
+    box-shadow:6px 0 8px -6px rgba(0,0,0,.18)
+  }
+
+  .num{ text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums }
+
+  .h1{font-weight:800;font-size:14px;line-height:1.4}
+  .h2{font-weight:400;font-size:14px;line-height:1.4}
+
+  .btn{
+    border:0;background:transparent;cursor:pointer;display:flex;align-items:center;
+    justify-content:flex-start;text-align:left;width:100%;font:inherit;color:inherit;
+    word-break:break-word;white-space:normal;line-height:1.4;
+  }
+
+  .chev{width:.9rem;height:.9rem;margin-right:.45rem;position:relative;flex:0 0 auto}
+  .arrow{position:absolute;top:0;left:0;width:.9rem;height:.9rem;stroke:#374151;fill:none;stroke-width:2;
+         stroke-linecap:round;stroke-linejoin:round;opacity:0;animation:drop 1.6s ease-in-out infinite}
+  .arrow:nth-child(2){animation-delay:.2s} .arrow:nth-child(3){animation-delay:.4s}
+  @keyframes drop{0%{transform:translateY(-3px);opacity:0}20%{transform:translateY(0);opacity:1}60%{transform:translateY(3px);opacity:.9}100%{transform:translateY(5px);opacity:0}}
+
+  td.pad, th.pad{ pointer-events:none; border-bottom:0; background:transparent }
+
+  .hint{padding:6px 10px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line)}
+
+  @media (max-width:1200px){
+    :root{--w-name:380px;--w-num:145px;--w-last:170px}
+  }
+  @media (max-width:980px){
+    :root{--w-name:340px;--w-num:138px;--w-last:165px}
+  }
+  @media (max-width:780px){
+    :root{--w-name:300px;--w-num:128px;--w-last:160px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header"><h2 class="title">Ejecución presupuestal por programa presupuestal</h2></div>
+
+    <div class="table-wrap">
+      <table id="tbl">
+        <colgroup>
+          <col style="width:var(--w-name)">
+          <col style="width:var(--w-num)"><col style="width:var(--w-num)"><col style="width:var(--w-num)">
+          <col style="width:var(--w-num)"><col style="width:var(--w-num)">
+          <col style="width:var(--w-last)">
+          <col style="width:var(--w-pad)">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Programa / Oficina</th>
+            <th>Monto PIA</th>
+            <th>Monto PIM</th>
+            <th>Monto Certificado</th>
+            <th>Monto Comprometido Anual</th>
+            <th>Monto Comprometido</th>
+            <th>Monto Devengado</th>
+            <th class="pad"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="hint">Fuente: Ministerio de Economía y Finanzas (MEF) — Portal de Datos Abiertos · Capa 13</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
+const WHERE ="sector_nombre = 'VIVIENDA CONSTRUCCION Y SANEAMIENTO' AND ano_eje = 2025";
+
+const F={
+  programa:"programa_ppto_nombre",
+  oficina :"ejecutora_nombre",
+  pia:"monto_pia",
+  pim:"monto_pim",
+  cert:"monto_certificado",
+  compA:"monto_comprometido_anual",
+  comp:"monto_comprometido",
+  dev:"monto_devengado"
+};
+
+const NF=new Intl.NumberFormat('es-PE');
+
+async function query(){
+  const outStats=JSON.stringify([
+    {statisticType:'sum',onStatisticField:F.pia,outStatisticFieldName:'pia'},
+    {statisticType:'sum',onStatisticField:F.pim,outStatisticFieldName:'pim'},
+    {statisticType:'sum',onStatisticField:F.cert,outStatisticFieldName:'cert'},
+    {statisticType:'sum',onStatisticField:F.compA,outStatisticFieldName:'compA'},
+    {statisticType:'sum',onStatisticField:F.comp,outStatisticFieldName:'comp'},
+    {statisticType:'sum',onStatisticField:F.dev,outStatisticFieldName:'dev'}
+  ]);
+  const qs=new URLSearchParams({
+    where:WHERE,
+    groupByFieldsForStatistics:`${F.programa},${F.oficina}`,
+    outFields:`${F.programa},${F.oficina}`,
+    outStatistics:outStats,orderByFields:`${F.programa} ASC,${F.oficina} ASC`,
+    returnGeometry:'false',f:'json'
+  });
+  const res=await fetch(SERVICE+"?"+qs,{cache:'no-store'});
+  const j=await res.json();
+  if(j.error) throw new Error(j.error.message||'Error del servicio');
+  return (j.features||[]).map(f=>f.attributes);
+}
+
+function build(rows){
+  const tree=new Map();
+  for(const r of rows){
+    const prog=r[F.programa]??'(Sin programa)';
+    if(!tree.has(prog)) tree.set(prog,[]);
+    tree.get(prog).push(r);
+  }
+  for(const arr of tree.values()){
+    arr.sort((a,b)=>(a[F.oficina]??'').localeCompare(b[F.oficina]??'','es'));
+  }
+  return tree;
+}
+
+function cells(v){
+  return `
+    <td class="num">${NF.format(v.pia||0)}</td>
+    <td class="num">${NF.format(v.pim||0)}</td>
+    <td class="num">${NF.format(v.cert||0)}</td>
+    <td class="num">${NF.format(v.compA||0)}</td>
+    <td class="num">${NF.format(v.comp||0)}</td>
+    <td class="num">${NF.format(v.dev||0)}</td>
+    <td class="pad"></td>`;
+}
+
+function render(tree){
+  const TB=document.getElementById('tbody'); TB.innerHTML='';
+  for(const [programa, items] of tree.entries()){
+    const agg=items.reduce((a,x)=>({
+      pia:a.pia+(+x.pia||0),pim:a.pim+(+x.pim||0),cert:a.cert+(+x.cert||0),
+      compA:a.compA+(+x.compA||0),comp:a.comp+(+x.comp||0),
+      dev:a.dev+(+x.dev||0)
+    }),{pia:0,pim:0,cert:0,compA:0,comp:0,dev:0});
+
+    const id='p_'+btoa(programa).replace(/=+$/,'');
+    TB.insertAdjacentHTML('beforeend',`
+      <tr>
+        <th class="sticky h1">
+          <button class="btn" aria-expanded="false" aria-controls="${id}">
+            <span class="chev">
+              <svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>${programa}
+          </button>
+        </th>
+        ${cells(agg)}
+      </tr>`);
+
+    for(const x of items){
+      TB.insertAdjacentHTML('beforeend',`
+        <tr data-parent="${id}" style="display:none">
+          <td class="sticky h2" style="padding-left:24px;">${x[F.oficina]??'(Sin oficina)'}</td>
+          ${cells(x)}
+        </tr>`);
+    }
+  }
+
+  document.querySelectorAll('button[aria-controls]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.getAttribute('aria-controls');
+      const open=btn.getAttribute('aria-expanded')==='true';
+      btn.setAttribute('aria-expanded',String(!open));
+      document.querySelectorAll(`[data-parent="${id}"]`).forEach(tr=>{
+        tr.style.display=open?'none':'';
+      });
+    });
+  });
+}
+
+(async()=>{
+  try{
+    const rows=await query();
+    render(build(rows));
+  }catch(e){
+    console.error(e);
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="8" style="text-align:center;color:#b91c1c;padding:24px">
+        Error al cargar datos: ${e?.message||'Fallo del servicio'}
+      </td></tr>`;
+  }
+})();
+</script>
+</body>
+</html>
 
