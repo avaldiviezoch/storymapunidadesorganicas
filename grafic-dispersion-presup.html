@@ -19,21 +19,6 @@ body{
 }
 a{ text-decoration:none; color:#f9f9f9 }
 
-/* ===== Pantalla inicial de música ===== */
-#musicScreen{
-  position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
-  background:#000; color:#fff; text-align:center; gap:18px; z-index:100000;
-  padding:24px; font-family:'VT323', monospace;
-}
-#musicScreen h1{ font-size:38px; margin:0 }
-#musicScreen p{ font-size:22px; max-width:720px; margin:0 auto }
-#musicScreen .btn{
-  font:28px 'VT323', monospace; padding:14px 28px; border-radius:12px; cursor:pointer;
-  background:#ff2a87; color:#fff; border:none; box-shadow:0 0 18px rgba(255,42,135,.6);
-  transition: transform .12s ease, box-shadow .25s ease;
-}
-#musicScreen .btn:hover{ transform:scale(1.05); box-shadow:0 0 28px rgba(255,120,190,.9) }
-
 /* CONTENEDOR */
 #out-all{
   position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:12px;
@@ -83,6 +68,10 @@ h2,h3{font:26px 'VT323', monospace}
   text-align:center; margin:0 auto; max-width: min(560px, 80vw);
   font: clamp(18px, 4.5vw, 26px) 'VT323', monospace;
   display:none; padding:6px 10px; background:rgba(0,0,0,.45); border:1px dashed rgba(255,255,255,.2); border-radius:10px;
+
+  /* === Ajuste mínimo para que no se salgan en móvil === */
+  max-height: 28vh; overflow:auto;
+  overflow-wrap:anywhere; word-break:break-word;
 }
 
 /* Subpantallas dentro del mundo */
@@ -194,6 +183,14 @@ h2,h3{font:26px 'VT323', monospace}
 @keyframes typing{from{width:0} to{width:105%}}
 @keyframes blink-caret{from,to{border-color:transparent} 50%{border-color:#fff}}
 @keyframes visible{from{opacity:0} to{opacity:1}}
+@keyframes tremble{
+  0%{ transform:translate(0,0) rotate(0deg) }
+  20%{ transform:translate(1px,-1px) rotate(1deg) }
+  40%{ transform:translate(-1px,1px) rotate(-1deg) }
+  60%{ transform:translate(1px,0) rotate(1deg) }
+  80%{ transform:translate(-1px,1px) rotate(0deg) }
+  100%{ transform:translate(0,0) rotate(0deg) }
+}
 @-webkit-keyframes light-ans {
   0% { opacity:0; transform: translateY(0vmin); }
   25% { opacity:1; transform: translateY(-5vmin) translateX(-2vmin); }
@@ -220,14 +217,6 @@ h2,h3{font:26px 'VT323', monospace}
 </style>
 </head>
 <body>
-
-<!-- ===== Pantalla inicial para activar música ===== -->
-<div id="musicScreen">
-  <h1>🎵 Activa la música antes de comenzar</h1>
-  <p>Haz clic en el botón para iniciar el audio (volumen alto) y disfrutar de la experiencia completa.</p>
-  <button id="playMusic" class="btn">▶ Activar música y comenzar</button>
-</div>
-
 <div id="out-all">
 
   <!-- PREGUNTAS -->
@@ -438,8 +427,8 @@ h2,h3{font:26px 'VT323', monospace}
       </div>
     </div>
   </div>
-  <!-- Usamos este mismo audio para la música inicial y para el overlay -->
-  <audio id="loveAudio" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000" preload="auto" loop></audio>
+  <!-- cambio mínimo: playsinline -->
+  <audio id="loveAudio" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000" preload="auto" loop playsinline></audio>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
@@ -448,37 +437,38 @@ function showFlex(sel){ $(sel).css('display','flex'); }
 function showBlock(sel){ $(sel).css('display','block'); }
 function hide(sel){ $(sel).css('display','none'); }
 
-/* ===== Pantalla de música inicial ===== */
-document.getElementById('playMusic').addEventListener('click', ()=>{
-  const a = document.getElementById('loveAudio'); // mismo audio de flores
-  if(a){
-    a.volume = 1.0; // volumen fuerte
-    a.muted = false;
-    a.play().catch(()=>{
-      // fallback para navegadores que requieren interacción: iniciar en mute y luego desmutear
-      a.muted = true;
-      a.play().finally(()=>{ a.muted=false; a.volume=1.0; });
-    });
-  }
-  document.getElementById('musicScreen').style.display='none';
-});
-
 /* ===== Overlay flores + audio ===== */
 function showFlowersOverlay(){
   const ov = document.getElementById('flowersOverlay');
   const a = document.getElementById('loveAudio');
   if(!ov || !a) return;
   ov.classList.add('active');
-  // Asegurar que el audio siga
   a.volume = 1.0; a.muted = false;
   a.play().catch(()=>{ a.muted=true; a.play().finally(()=>{ a.muted=false; a.volume=1.0; }); });
 }
 document.getElementById('flowersOverlay').addEventListener('click', e=>{
   if(e.target.id === 'flowersOverlay'){
     e.currentTarget.classList.remove('active');
-    // Nota: no pausamos la música global; solo cerramos el overlay
+    const a = document.getElementById('loveAudio'); if(a) a.pause();
   }
 });
+
+/* === Desbloqueo de audio en el primer toque/clic (mínimo) === */
+let audioUnlocked = false;
+function unlockAudioOnce(){
+  if(audioUnlocked) return;
+  const a = document.getElementById('loveAudio');
+  if(!a) return;
+  a.muted = true;
+  a.play().then(()=>{
+    a.pause(); a.currentTime = 0; a.muted = false;
+    audioUnlocked = true;
+  }).catch(()=>{ /* ignorar: lo reintentará en el siguiente toque */ });
+}
+// primer gesto del usuario desbloquea audio
+window.addEventListener('pointerdown', unlockAudioOnce, {once:true});
+document.addEventListener('touchstart', unlockAudioOnce, {once:true, passive:true});
+$(document).on('click', '.btn', unlockAudioOnce);
 
 /* ===== Juego ===== */
 $(function(){
