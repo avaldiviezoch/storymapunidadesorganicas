@@ -47,28 +47,30 @@
       overflow:hidden;
     }
 
-    /* Diálogos del mago y textos seguros dentro de las paredes */
-    .dialogBox{
-      position:absolute; left:var(--wallX); right:var(--wallX);
-      display:flex; align-items:center; justify-content:center; text-align:center;
-      padding:0 4px;
-    }
-    #f8, #f9 { bottom:150px; display:none; }
-    #f11      { top:120px;  display:none; }
+    /* Diálogos en cajas responsivas (no salen de las paredes) */
+    .dialogBox{ position:absolute; left:var(--wallX); right:var(--wallX); display:none; }
+    #f8, #f9 { bottom:150px; }
+    #f11      { top:120px; }
     .dialogInner{
+      margin:0 auto;
       max-width:min(620px, calc(100% - 16px));
-      background:rgba(0,0,0,.7);
+      background:rgba(0,0,0,.75);
       border:1px solid rgba(255,255,255,.18);
       border-radius:12px; padding:12px 14px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
-      font:22px 'VT323', monospace; line-height:1.3;
+      font:22px 'VT323', monospace; line-height:1.35;
       white-space:normal; word-break:break-word;
+      text-align:center;
     }
     .dialogInner p{ margin:.25em 0; }
 
-    #f10{position:absolute; bottom:140px; left:var(--wallX); right:var(--wallX); height:160px; display:none; align-items:center; justify-content:center;}
-    .box{width:100px; height:100px; background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat; margin:20px; cursor:pointer; transition:transform .15s ease}
-    .box:hover{background:url(https://i.imgur.com/FIrcwmM.png) center/cover no-repeat; transform:translateY(-2px)}
+    #f10{position:absolute; bottom:140px; left:var(--wallX); right:var(--wallX); height:160px; display:none; align-items:center; justify-content:center; gap:20px;}
+    .box{
+      width:100px; height:100px; background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat;
+      cursor:pointer; transition:transform .12s ease;
+    }
+    .box.wiggle{ animation: wiggle .45s ease-in-out infinite; }
+    .box.opened{ background:url(https://i.imgur.com/FIrcwmM.png) center/cover no-repeat; transform:translateY(-2px); }
 
     #f12,#f18{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column;}
     #f13{display:none; text-align:center}
@@ -107,12 +109,21 @@
     .dir-left  { background-image:url(https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000); } /* IZQ     */
     .dir-right { background-image:url(https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000); } /* DER     */
 
-    /* Globo del mago al acercarse a cofres (multi-parrafo y seguro) */
-    #wizardHint{
-      position:absolute; left:var(--wallX); right:var(--wallX); top:var(--wallTop);
-      display:none; z-index:50;
-    }
+    /* Globo del mago (cerca de cofres) */
+    #wizardHint{ position:absolute; left:var(--wallX); right:var(--wallX); top:var(--wallTop); display:none; z-index:50; }
     #wizardHint .dialogInner{ margin:0 auto; }
+
+    /* Confirmador */
+    #confirm{
+      position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:9998;
+    }
+    #confirm .panel{
+      background:#111; border:1px solid rgba(255,255,255,.2); border-radius:12px; padding:16px 18px;
+      font:22px 'VT323', monospace; text-align:center; width:min(420px, 92vw);
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+    #confirm .actions{ margin-top:12px; display:flex; gap:12px; justify-content:center; }
+    #confirm .actions .btn{ opacity:1; }
 
     /* Botón audio */
     #audioToggle{
@@ -122,9 +133,16 @@
       cursor:pointer; user-select:none;
     }
 
+    /* Animaciones */
     @keyframes typing{from{width:0} to{width:105%}}
     @keyframes blink-caret{from,to{border-color:transparent} 50%{border-color:#fff}}
     @keyframes visible{from{opacity:0} to{opacity:1}}
+    @keyframes wiggle{
+      0%,100%{ transform:translateY(0) }
+      25%{ transform:translateY(-2px) }
+      50%{ transform:translateY(2px) }
+      75%{ transform:translateY(-1px) }
+    }
 
     @media (max-width:560px){
       :root{ --wallX:20px; --wallTop:40px; --wallBottom:70px; }
@@ -136,8 +154,9 @@
   </style>
 </head>
 <body>
-  <!-- AUDIO GLOBAL -->
-  <audio id="bgm" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000" autoplay loop playsinline></audio>
+  <!-- AUDIO GLOBAL (mejor compatibilidad) -->
+  <audio id="bgm" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000"
+         autoplay loop playsinline></audio>
   <div id="audioToggle">🔊 Música</div>
 
   <div id="out-all">
@@ -195,7 +214,7 @@
       <!-- Héroe (empieza “afuera”, pegado a la puerta) -->
       <div id="hero" class="dir-up"></div>
 
-      <!-- Diálogos del mago en cajas responsivas -->
+      <!-- Diálogos del mago -->
       <div id="f8" class="dialogBox">
         <div class="dialogInner">
           <p>Hoooola, Lucero. Soy un poderoso mago…</p>
@@ -213,9 +232,9 @@
       </div>
 
       <div id="f10">
-        <div class="box ca1"></div>
-        <div class="box ca2"></div>
-        <div class="box ca3"></div>
+        <div class="box ca1" data-target="f12"></div>
+        <div class="box ca2" data-target="f18"></div>
+        <div class="box ca3" data-target="f15"></div>
       </div>
 
       <div id="f11" class="dialogBox">
@@ -223,7 +242,7 @@
       </div>
     </div>
 
-    <!-- Cofre 1 -->
+    <!-- Cofre 1 (carta) -->
     <div id="f12">
       <div id="f13">
         <h1>por favor, reproduce esta canción antes de leer</h1>
@@ -233,7 +252,7 @@
       </div>
 
       <div id="f14">
-        Si alguien me hubiera preguntado siete meses atrás si creía volver a darme la oportunidad de estar con alguien, me habría reído en su cara...
+        Si alguien me hubiera preguntado siete meses atrás si creía volver a darme la oportunidad...
         <br><br>
         <div class="btn carta">&gt; vuelves a abrir las otras cajas.</div>
       </div>
@@ -285,71 +304,78 @@
     </div>
   </div>
 
+  <!-- Confirmador -->
+  <div id="confirm">
+    <div class="panel">
+      <div>¿Estás segura?</div>
+      <div class="actions">
+        <div class="btn ok">Abrir cofre</div>
+        <div class="btn cancel">Cancelar</div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
     function showFlex(sel){ $(sel).css('display','flex'); }
     function showBlock(sel){ $(sel).css('display','block'); }
     function hide(sel){ $(sel).css('display','none'); }
 
-    /* ======= AUDIO GLOBAL ======= */
+    /* ===== AUDIO: mejor práctica de autoplay =====
+       1) Intento normal (sonido).
+       2) Si falla, hago autoplay silenciado y des-silencio al primer gesto. */
     (function(){
       const audio = document.getElementById('bgm');
       const btn = document.getElementById('audioToggle');
-      audio.volume = 0.8;  // volumen alto
+      audio.volume = 0.85;
       audio.muted = false;
 
-      function tryPlay(){
-        audio.play().catch(()=>{
-          const resume = () => {
-            audio.muted = false;
-            audio.play().catch(()=>{});
-            window.removeEventListener('click', resume);
-            window.removeEventListener('keydown', resume);
-          };
-          window.addEventListener('click', resume, {once:true});
-          window.addEventListener('keydown', resume, {once:true});
-        });
+      function unlockOnGesture(){
+        const resume = () => {
+          audio.muted = false;
+          audio.play().catch(()=>{});
+          window.removeEventListener('pointerdown', resume);
+          window.removeEventListener('keydown', resume);
+        };
+        window.addEventListener('pointerdown', resume, {once:true});
+        window.addEventListener('keydown', resume, {once:true});
       }
-      tryPlay();
+
+      audio.play().then(()=>{/* ok */}).catch(()=>{
+        // Autoplay bloqueado: reproducimos en mute y esperamos gesto
+        audio.muted = true;
+        audio.play().finally(unlockOnGesture);
+      });
 
       btn.addEventListener('click', ()=>{
-        if(audio.muted){ audio.muted = false; btn.textContent='🔊 Música'; audio.play().catch(()=>{}); }
-        else{ audio.muted = true; btn.textContent='🔇 Silencio'; }
+        if(audio.muted){ audio.muted=false; btn.textContent='🔊 Música'; audio.play().catch(()=>{}); }
+        else{ audio.muted=true; btn.textContent='🔇 Silencio'; }
       });
     })();
 
-    /* ======= HÉROE / MOVIMIENTO ======= */
+    /* ===== HÉROE + cofres “tiemblan” al pasar cerca; abren solo con click + confirm ===== */
     (function(){
       const hero = { el:null, x:0, y:0, w:110, h:110, speed:3.2, dir:'up' };
       const keys = { up:false, down:false, left:false, right:false };
       let running = false, canMove = false;
 
-      // Límites para no tocar murallas (respecto al centro del sprite)
+      const css = getComputedStyle(document.documentElement);
       const bounds = {
-        top:  parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallTop')) || 60,
-        left: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallX'))   || 40,
-        right:parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallX'))   || 40,
-        bottom:parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallBottom')) || 85
+        top: parseInt(css.getPropertyValue('--wallTop')) || 60,
+        left: parseInt(css.getPropertyValue('--wallX'))  || 40,
+        right:parseInt(css.getPropertyValue('--wallX'))  || 40,
+        bottom:parseInt(css.getPropertyValue('--wallBottom')) || 85
       };
 
-      // “Puerta” muy abajo: parte del sprite queda fuera (se ve como afuera)
-      const doorOutsideFactor = 0.25; // 25% del alto queda fuera
-
-      // Preload sprites
-      [
-        "https://lh3.googleusercontent.com/d/1mSX8bhUoXpRKsKlufh9bKKX2JsckTxvP=w1000",
-        "https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000",
-        "https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000",
-        "https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000"
-      ].forEach(src=>{ const i=new Image(); i.src=src; });
+      // Puerta: que empiece un poco “afuera”
+      const doorOutsideFactor = 0.28;
 
       function start(){
         const pf = document.getElementById('f7');
         hero.el = document.getElementById('hero');
         const W = pf.clientWidth, H = pf.clientHeight;
-        // centro X y tan abajo que queda parte fuera
         hero.x = W/2;
-        hero.y = H - hero.h*(0.5 - doorOutsideFactor); // aparece más “afuera”
+        hero.y = H - hero.h*(0.5 - doorOutsideFactor);
         place();
         if(!running){ running = true; requestAnimationFrame(loop); }
       }
@@ -372,7 +398,6 @@
 
         hero.x += vx; hero.y += vy;
 
-        // Limitar SOLO cuando puede moverse (para que al inicio se vea fuera)
         if(canMove){
           const minX = bounds.left + hero.w/2;
           const minY = bounds.top  + hero.h/2;
@@ -386,14 +411,14 @@
         }
 
         if(canMove){
-          if(vx>0){ setDir('right'); }
-          else if(vx<0){ setDir('left'); }
-          else if(vy>0){ setDir('down'); }
-          else if(vy<0){ setDir('up'); }
+          if(vx>0) setDir('right');
+          else if(vx<0) setDir('left');
+          else if(vy>0) setDir('down');
+          else if(vy<0) setDir('up');
         }
 
         place();
-        hintNearChests();
+        chestProximity();
         requestAnimationFrame(loop);
       }
 
@@ -414,33 +439,60 @@
       window.addEventListener('keydown', e=>key(e,true), {passive:false});
       window.addEventListener('keyup',   e=>key(e,false), {passive:false});
 
-      // Hint cerca de cofres
-      function hintNearChests(){
-        if(!canMove){ hide('#wizardHint'); return; }
+      // Cofres: “tiembla” al pasar cerca
+      function chestProximity(){
+        if(!canMove) return hide('#wizardHint');
         const heroRect = hero.el.getBoundingClientRect();
-        const chSel = ['.ca1','.ca2','.ca3'];
         let near = false;
-        chSel.forEach(sel=>{
-          const el = document.querySelector(sel);
-          if(!el) return;
-          const r = el.getBoundingClientRect();
+        document.querySelectorAll('#f10 .box').forEach(box=>{
+          const r = box.getBoundingClientRect();
           const cx = r.left + r.width/2, cy = r.top + r.height/2;
           const hx = heroRect.left + heroRect.width/2, hy = heroRect.top + heroRect.height/2;
           const dist = Math.hypot(cx-hx, cy-hy);
-          if(dist < 140) near = true;
+          if(dist < 140){ box.classList.add('wiggle'); near = true; }
+          else{ box.classList.remove('wiggle'); }
         });
         if(near) showFlex('#wizardHint'); else hide('#wizardHint');
       }
 
-      // API pública
+      // Confirmador genérico
+      function openConfirm(onOk){
+        const $c = $('#confirm'); showFlex('#confirm');
+        $c.find('.ok').off('click').on('click', ()=>{ hide('#confirm'); onOk(); });
+        $c.find('.cancel').off('click').on('click', ()=>{ hide('#confirm'); });
+      }
+
+      // Abrir cofre con confirmación y pasar a la fase target
+      function attachChestClicks(){
+        $('#f10 .box').each(function(){
+          const $box = $(this);
+          const target = '#'+$box.data('target'); // f12, f15, f18
+
+          $box.on('click', function(){
+            openConfirm(()=>{
+              $box.addClass('opened');
+              // pasar a su fase
+              hide('#f7'); hide('#wizardHint'); showBlock(target);
+              if(target==='#f12'){ showBlock('#f13'); }         // carta: primero pantalla de “reproduce…”
+              if(target==='#f15'){ showFlex('#f16'); }          // anillos: toma anillo
+              if(target==='#f18'){ showFlex('#f19'); }          // final: diálogo
+            });
+          });
+        });
+      }
+
+      // API pública para flujo
       window.__heroCtrl = {
         start,
         enable:()=>{ canMove=true; },
         disable:()=>{ canMove=false; }
       };
+
+      // iniciar click handlers de cofres ya
+      attachChestClicks();
     })();
 
-    /* ======= FLUJO / DIÁLOGOS ======= */
+    /* ===== FLUJO / DIÁLOGOS ===== */
     $(function(){
       showFlex('#f1');
 
@@ -455,32 +507,29 @@
       $('.q4-no').on('click', function(){ hide('#f4new'); showFlex('#f5new'); });
       $('.q4-seguir').on('click', function(){ hide('.frame'); showFlex('#f6'); });
 
-      // Entrar al mundo: Lucero en la puerta, sin moverse aún
+      // Entrar al mundo
       $('.afi').on('click', function(){
         hide('#f6'); showFlex('#f7'); showFlex('#f8');
-        __heroCtrl.start();
-        __heroCtrl.disable();
+        __heroCtrl.start();    // la deja en la “puerta”
+        __heroCtrl.disable();  // sin movimiento hasta que salgan las cajas
       });
 
-      // Mago -> respuesta
       $('.salu').on('click', function(){ hide('#f8'); showFlex('#f9'); });
 
-      // Aparecen cajas y se habilita movimiento (ya puede “entrar”)
       $('.copy').on('click', function(){
         hide('#f9'); showFlex('#f10'); showFlex('#f11');
-        __heroCtrl.enable();
+        __heroCtrl.enable();   // ahora sí puede moverse
       });
 
-      // Cofres
-      $('.ca1').on('click', function(){ showFlex('#f12'); showBlock('#f13'); });
+      // Carta
       $('.go').on('click', function(){ hide('#f13'); showBlock('#f14'); });
-      $('.carta').on('click', function(){ hide('#f12'); });
+      $('.carta').on('click', function(){ hide('#f12'); showFlex('#f7'); showFlex('#f10'); showFlex('#f11'); __heroCtrl.enable(); });
 
-      $('.ca3').on('click', function(){ showBlock('#f15'); showFlex('#f16'); });
+      // Anillos
       $('.anillo').on('click', function(){ hide('#f16'); showFlex('#f17'); });
-      $('.marry').on('click', function(){ hide('#f15'); hide('#f17'); });
+      $('.marry').on('click', function(){ hide('#f15'); showFlex('#f7'); showFlex('#f10'); showFlex('#f11'); __heroCtrl.enable(); });
 
-      $('.ca2').on('click', function(){ showBlock('#f18'); showFlex('#f19'); });
+      // Final
       $('.meme').on('click', function(){ hide('#f19'); showFlex('#f20'); });
       $('.meme2').on('click', function(){ hide('#f20'); showFlex('#f21'); });
       $('.yes').on('click', function(){ hide('#f21'); showFlex('#f22'); });
