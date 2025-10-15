@@ -1,1 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cuadro por Oficina — Fuente de Financiamiento — Específica Detalle</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#ffffff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
+    --ok:#16a34a; --mid:#f59e0b; --bad:#ef4444;
+    --fs-body:13.5px; --fs-head:13.2px;
+  }
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial;overflow:hidden}
+  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:10px}
+  .card{flex:1;max-width:1400px;background:#fff;border:1px solid var(--line);border-radius:12px;
+        box-shadow:0 10px 28px rgba(2,6,23,.06);display:flex;flex-direction:column;overflow:hidden}
+  .header{padding:10px;border-bottom:1px solid var(--line);text-align:center}
+  .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,22px)}
+  .subtitle{margin:4px 0 0 0;color:var(--muted);font-size:12.5px}
+
+  .table-wrap{flex:1 1 auto;overflow:auto}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-body)}
+  thead th{position:sticky;top:0;z-index:30;background:#1e293b;color:#fff;font-weight:800;text-align:center;
+           padding:9px;border-bottom:2px solid #0b1220}
+  thead th:first-child{left:0;z-index:40;position:sticky;background:#1e293b}
+  tbody td,tbody th{padding:8px;border-bottom:1px solid var(--line);background:#fff;vertical-align:middle}
+  tbody th{background:#f8fafc}
+  .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pct{text-align:center;white-space:nowrap}
+  .rango{display:inline-block;padding:2px 6px;border-radius:999px;font-weight:800;font-size:11.5px}
+  .rango.alto{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+  .rango.medio{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+  .rango.bajo{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+
+  /* Niveles jerárquicos */
+  .h1{font-weight:800;font-size:14px}
+  .h2{font-weight:400;font-size:14px}
+  .h3{font-style:italic;font-size:13px}
+
+  /* Botón con flecha animada tipo GIF */
+  .btn{border:0;background:transparent;cursor:pointer;display:flex;align-items:center;font:inherit;color:inherit}
+  .chev{width:1rem;height:1rem;margin-right:.4rem;position:relative}
+  .arrow{position:absolute;top:0;left:0;width:1rem;height:1rem;stroke:#ea580c;fill:none;stroke-width:2;
+         stroke-linecap:round;stroke-linejoin:round;opacity:0;animation:chevDrip 1.8s ease-in-out infinite}
+  .arrow:nth-child(2){animation-delay:.22s}
+  .arrow:nth-child(3){animation-delay:.44s}
+  @keyframes chevDrip{
+    0%{transform:translateY(-8px) scale(.95);opacity:0}
+    20%{transform:translateY(-2px) scale(1);opacity:1}
+    60%{transform:translateY(6px) scale(1.04);opacity:.95}
+    100%{transform:translateY(12px) scale(1);opacity:0}
+  }
+  .btn:hover .arrow{stroke:#f97316}
+
+  tfoot td{background:#f8fafc;font-weight:900;padding:10px;border-top:2px solid #94a3b8}
+  .hint{font-size:11.5px;color:var(--muted);text-align:center;padding:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <h2 class="title">CUADRO POR OFICINA — FUENTE DE FINANCIAMIENTO — ESPECÍFICA DETALLE</h2>
+      <p class="subtitle">Totales PIA/PIM/Certificado/Compromiso/Devengado/Girado — Avance con rango <strong>Bajo / Medio / Alto</strong></p>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Oficina / Fuente / Específica</th>
+            <th>PIA</th><th>PIM</th><th>Certif.</th><th>Comp.Annual</th><th>Devengado</th><th>Girado</th>
+            <th>% Avance</th><th>Rango</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+      <div class="hint">Fuente: MEF — MapServer/13 (OGEI · Vivienda)</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
+const WHERE="sector_nombre = 'VIVIENDA CONSTRUCCION Y SANEAMIENTO' AND ano_eje = 2025";
+const F={
+  oficina:"ejecutora_nombre",
+  fuente:"fuente_financiamiento_nombre",
+  espec:"especifica_det_nombre",
+  pia:"monto_pia", pim:"monto_pim", cert:"monto_certificado",
+  comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado"
+};
+const fmt=new Intl.NumberFormat('es-PE');
+const pct=(a,b)=>(!b||b<=0)?0:(a/b*100);
+const rango=p=>p<30?'bajo':(p<70?'medio':'alto');
+const rangoTxt=p=>p<30?'Bajo':(p<70?'Medio':'Alto');
+
+async function query(){
+  const outStats=JSON.stringify([
+    {statisticType:'sum',onStatisticField:F.pia,outStatisticFieldName:'pia'},
+    {statisticType:'sum',onStatisticField:F.pim,outStatisticFieldName:'pim'},
+    {statisticType:'sum',onStatisticField:F.cert,outStatisticFieldName:'cert'},
+    {statisticType:'sum',onStatisticField:F.comp,outStatisticFieldName:'comp'},
+    {statisticType:'sum',onStatisticField:F.dev,outStatisticFieldName:'dev'},
+    {statisticType:'sum',onStatisticField:F.gir,outStatisticFieldName:'gir'}
+  ]);
+  const qs=new URLSearchParams({
+    where:WHERE,
+    groupByFieldsForStatistics:`${F.oficina},${F.fuente},${F.espec}`,
+    outFields:`${F.oficina},${F.fuente},${F.espec}`,
+    outStatistics:outStats, returnGeometry:'false', f:'json'
+  });
+  const res=await fetch(SERVICE+"?"+qs); const j=await res.json();
+  return j.features.map(f=>f.attributes);
+}
+
+function build(rows){
+  const tree=new Map();
+  let total={pia:0,pim:0,cert:0,comp:0,dev:0,gir:0};
+  for(const r of rows){
+    total.pia+=r.pia; total.pim+=r.pim; total.cert+=r.cert; total.comp+=r.comp; total.dev+=r.dev; total.gir+=r.gir;
+    if(!tree.has(r[F.oficina])) tree.set(r[F.oficina],new Map());
+    const sub=tree.get(r[F.oficina]);
+    if(!sub.has(r[F.fuente])) sub.set(r[F.fuente],[]);
+    sub.get(r[F.fuente]).push(r);
+  }
+  return {tree,total};
+}
+
+function render({tree,total}){
+  const TB=document.getElementById('tbody'), TF=document.getElementById('tfoot');
+  TB.innerHTML='';
+  for(const [ofi,fuentes] of tree.entries()){
+    let aggO={pia:0,pim:0,cert:0,comp:0,dev:0,gir:0};
+    for(const arr of fuentes.values()) for(const x of arr)
+      for(const k of ['pia','pim','cert','comp','dev','gir']) aggO[k]+=x[k];
+    const oId='o_'+btoa(ofi);
+    TB.insertAdjacentHTML('beforeend',`
+      <tr>
+        <th class="h1">
+          <button class="btn" aria-expanded="false" aria-controls="${oId}">
+            <span class="chev">
+              <svg class="arrow" viewBox="0 0 24 24"><polyline points="12 4 12 20"/></svg>
+              <svg class="arrow" viewBox="0 0 24 24"><polyline points="12 4 12 20"/></svg>
+              <svg class="arrow" viewBox="0 0 24 24"><polyline points="12 4 12 20"/></svg>
+            </span>${ofi}
+          </button>
+        </th>
+        ${cells(aggO)}
+      </tr>`);
+
+    for(const [fuente, arr] of fuentes.entries()){
+      let aggF={pia:0,pim:0,cert:0,comp:0,dev:0,gir:0};
+      arr.forEach(x=>{for(const k in aggF) aggF[k]+=x[k];});
+      const fId='f_'+btoa(ofi+fuente);
+      TB.insertAdjacentHTML('beforeend',`
+        <tr data-parent="${oId}" style="display:none">
+          <th class="h2" style="padding-left:25px">
+            <button class="btn" aria-expanded="false" aria-controls="${fId}">
+              <span class="chev">
+                <svg class="arrow" viewBox="0 0 24 24"><polyline points="12 4 12 20"/></svg>
+                <svg class="arrow" viewBox="0 0 24 24"><polyline points="12 4 12 20"/></svg>
+                <svg class="arrow" viewBox="0 0 24 24"><polyline points="12 4 12 20"/></svg>
+              </span>${fuente}
+            </button>
+          </th>
+          ${cells(aggF)}
+        </tr>`);
+
+      arr.forEach(x=>{
+        TB.insertAdjacentHTML('beforeend',`
+          <tr data-parent="${fId}" style="display:none">
+            <td class="h3" style="padding-left:50px">${x[F.espec]}</td>${cells(x)}
+          </tr>`);
+      });
+    }
+  }
+  TF.innerHTML=`<tr><th class="h1">TOTAL</th>${cells(total)}</tr>`;
+  addToggle();
+}
+
+function cells(v){
+  const p=pct(v.dev,v.pim); const r=rango(p);
+  return `
+    <td class="num">${fmt.format(v.pia)}</td>
+    <td class="num">${fmt.format(v.pim)}</td>
+    <td class="num">${fmt.format(v.cert)}</td>
+    <td class="num">${fmt.format(v.comp)}</td>
+    <td class="num">${fmt.format(v.dev)}</td>
+    <td class="num">${fmt.format(v.gir)}</td>
+    <td class="pct">${isFinite(p)?p.toFixed(1)+'%':'—'}</td>
+    <td class="pct"><span class="rango ${r}">${rangoTxt(p)}</span></td>`;
+}
+
+function addToggle(){
+  document.querySelectorAll('button[aria-controls]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.getAttribute('aria-controls');
+      const exp=btn.getAttribute('aria-expanded')==='true';
+      btn.setAttribute('aria-expanded',String(!exp));
+      document.querySelectorAll(`[data-parent="${id}"]`).forEach(tr=>{
+        tr.style.display=exp?'none':'';
+      });
+    });
+  });
+}
+
+(async()=>{
+  const data=await query(); render(build(data));
+})();
+</script>
+</body>
+</html>
 
