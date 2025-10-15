@@ -5,24 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>La Aventura — Regalo interactivo</title>
 
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
-    :root{ --pink:#ff60b4; --blue:#72efff; }
+    :root{ --pink:#ff60b4; --blue:#72efff; --wallX:40px; --wallTop:60px; --wallBottom:85px; }
     html,body{height:100%}
-    body{
-      margin:0; background:#111; background-attachment:fixed; background-size:cover;
-      color:#f9f9f9; font-family: Inconsolata, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    }
+    body{ margin:0; background:#111; color:#f9f9f9; font-family: Inconsolata, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
     a{ text-decoration:none; color:#f9f9f9 }
+    #out-all{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; }
 
-    #out-all{
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px;
-    }
-
-    /* Marco base para cada "pantalla" */
     .frame{
       position:absolute; width:720px; max-width:94vw; min-height:300px; max-height:86vh;
       display:none; align-items:center; justify-content:center; flex-direction:column;
@@ -33,7 +25,7 @@
 
     .decidir{display:flex; align-items:center; justify-content:center; flex-wrap:wrap}
     .btn{
-      font:25px 'VT323', monospace; margin:10px; opacity:0; animation:visible 1s 0.6s forwards;
+      font:25px 'VT323', monospace; margin:10px; opacity:0; animation:visible 1s .6s forwards;
       cursor:pointer; color:#f9f9f9; padding:8px 14px; border-radius:10px; border:1px dashed rgba(255,255,255,.18)
     }
     .btn:focus{ outline:2px dashed var(--blue); outline-offset:2px }
@@ -55,14 +47,29 @@
       overflow:hidden;
     }
 
-    /* Texto/cofres */
-    #f8,#f9{position:absolute; bottom:150px; left:150px; right:150px; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center;}
-    #f10{position:absolute; bottom:140px; left:150px; right:150px; height:160px; display:none; align-items:center; justify-content:center;}
+    /* Diálogos del mago y textos seguros dentro de las paredes */
+    .dialogBox{
+      position:absolute; left:var(--wallX); right:var(--wallX);
+      display:flex; align-items:center; justify-content:center; text-align:center;
+      padding:0 4px;
+    }
+    #f8, #f9 { bottom:150px; display:none; }
+    #f11      { top:120px;  display:none; }
+    .dialogInner{
+      max-width:min(620px, calc(100% - 16px));
+      background:rgba(0,0,0,.7);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:12px; padding:12px 14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      font:22px 'VT323', monospace; line-height:1.3;
+      white-space:normal; word-break:break-word;
+    }
+    .dialogInner p{ margin:.25em 0; }
+
+    #f10{position:absolute; bottom:140px; left:var(--wallX); right:var(--wallX); height:160px; display:none; align-items:center; justify-content:center;}
     .box{width:100px; height:100px; background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat; margin:20px; cursor:pointer; transition:transform .15s ease}
     .box:hover{background:url(https://i.imgur.com/FIrcwmM.png) center/cover no-repeat; transform:translateY(-2px)}
-    #f11{position:absolute; top:120px; transform:scale(.7); display:none; flex-direction:column; text-align:center;}
 
-    /* Cartas, anillos, etc. */
     #f12,#f18{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column;}
     #f13{display:none; text-align:center}
     #f13 a{display:inline-block; margin-top:10px}
@@ -73,7 +80,6 @@
     #f19,#f20,#f21,#f22{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px;}
     #f22{font:26px 'VT323', monospace; text-align:justify}
 
-    /* Avatar frente (pantalla f6) */
     .img1{
       width:120px; height:120px;
       background:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000) center/contain no-repeat;
@@ -83,10 +89,9 @@
       box-shadow:0 6px 18px rgba(0,0,0,.25);
     }
 
-    /* ====== HÉROE MOVIBLE (usa tus 4 sprites) ====== */
+    /* Héroe movible */
     #hero{
       position:absolute; width:110px; height:110px;
-      /* lo dejaremos centrado en X y en la “puerta” exacta con JS */
       pointer-events:none; z-index:20;
       background-position:center; background-repeat:no-repeat; background-size:contain;
       border-radius:16px; padding:6px;
@@ -94,15 +99,22 @@
       outline:1px solid rgba(255,255,255,.07);
       box-shadow:0 10px 28px rgba(0,0,0,.35);
       image-rendering: pixelated;
-      transform: translate(-50%, -50%); /* las coordenadas que use JS serán el centro */
-      left:50%; top:50%;                 /* valores iniciales (serán reemplazados) */
+      transform: translate(-50%, -50%);
+      left:50%; top:50%;
     }
     .dir-up    { background-image:url(https://lh3.googleusercontent.com/d/1mSX8bhUoXpRKsKlufh9bKKX2JsckTxvP=w1000); } /* ESPALDAS */
     .dir-down  { background-image:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000); } /* FRENTE  */
     .dir-left  { background-image:url(https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000); } /* IZQ     */
     .dir-right { background-image:url(https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000); } /* DER     */
 
-    /* Botón de audio */
+    /* Globo del mago al acercarse a cofres (multi-parrafo y seguro) */
+    #wizardHint{
+      position:absolute; left:var(--wallX); right:var(--wallX); top:var(--wallTop);
+      display:none; z-index:50;
+    }
+    #wizardHint .dialogInner{ margin:0 auto; }
+
+    /* Botón audio */
     #audioToggle{
       position:fixed; right:12px; bottom:12px; z-index:9999;
       font:18px 'VT323', monospace; padding:8px 12px; border-radius:10px;
@@ -110,28 +122,27 @@
       cursor:pointer; user-select:none;
     }
 
-    /* Animaciones */
     @keyframes typing{from{width:0} to{width:105%}}
     @keyframes blink-caret{from,to{border-color:transparent} 50%{border-color:#fff}}
     @keyframes visible{from{opacity:0} to{opacity:1}}
 
     @media (max-width:560px){
+      :root{ --wallX:20px; --wallTop:40px; --wallBottom:70px; }
       h1,h2,h3{font-size:22px}
-      #f11{transform:scale(.9)}
       #hero{ width:96px; height:96px; }
       .img1{ width:100px; height:100px; }
+      .dialogInner{ font-size:20px; }
     }
   </style>
 </head>
 <body>
-  <!-- AUDIO GLOBAL (autoplay con fallback) -->
-  <audio id="bgm" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000"
-         autoplay loop playsinline></audio>
+  <!-- AUDIO GLOBAL -->
+  <audio id="bgm" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000" autoplay loop playsinline></audio>
   <div id="audioToggle">🔊 Música</div>
 
   <div id="out-all">
 
-    <!-- PREGUNTAS INICIALES -->
+    <!-- PREGUNTAS -->
     <div id="f1" class="frame">
       <h1>¿Quieres saber algo de mí?</h1>
       <div class="decidir">
@@ -139,9 +150,7 @@
         <div class="btn q1-no">&gt; no</div>
       </div>
     </div>
-
     <div id="close1" class="frame"><h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2></div>
-
     <div id="f2new" class="frame">
       <h3>A veces las parejas pelean, a veces tú te cansas de repetir cosas a tu pareja, pero no significa que no te escuche: solo que hace las cosas diferente…</h3>
       <div class="decidir">
@@ -149,9 +158,7 @@
         <div class="btn q2-no">&gt; no seguir</div>
       </div>
     </div>
-
     <div id="close2" class="frame"><h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2></div>
-
     <div id="f3new" class="frame">
       <h3>Antonio dice que no significa que no te ame; hace todo por ti y te da detalles —no siempre en los mismos días— y también se frustra cuando le dices cosas que no hace.</h3>
       <div class="decidir">
@@ -159,7 +166,6 @@
         <div class="btn q3-cocacho">&gt; darle un cocacho</div>
       </div>
     </div>
-
     <div id="f4new" class="frame">
       <h3>Si no quieres seguir en esta aventura, es entendible, pero él se supera cada día y espera seguir.</h3>
       <div class="decidir">
@@ -167,40 +173,54 @@
         <div class="btn q4-no">&gt; no seguir aventura</div>
       </div>
     </div>
-
     <div id="f5new" class="frame"><h3>Antonio recibió un correo electrónico diciendo que pusiste “no seguir aventura” :(</h3></div>
 
-    <!-- INICIO DEL JUEGO -->
+    <!-- INICIO JUEGO -->
     <div id="f6" class="frame" style="display:none">
       <div class="img1"></div>
       <h3>esta eres tú, con tu pelo un poco largo y tu ropa amarilla en tendencia; jugaremos un juego: tienes que escoger algo del poderoso mago.</h3>
       <div class="btn afi">Comenzar !!!</div>
     </div>
 
-    <!-- MUNDO (con movimiento desbloqueable) -->
+    <!-- MUNDO -->
     <div id="f7">
-      <!-- Héroe inicia parado en la puerta (abajo) mirando hacia arriba -->
+      <!-- Hint cerca de cofres -->
+      <div id="wizardHint" class="dialogBox">
+        <div class="dialogInner">
+          <p>¿Estás segura?</p>
+          <p>Dale click al cofre.</p>
+        </div>
+      </div>
+
+      <!-- Héroe (empieza “afuera”, pegado a la puerta) -->
       <div id="hero" class="dir-up"></div>
 
-      <!-- Secuencia de diálogo antes de moverse -->
-      <div id="f8">
-        <h1>Hoooola lucero, soy un poderoso mago y jugaremos a las cajas escondidas</h1>
+      <!-- Diálogos del mago en cajas responsivas -->
+      <div id="f8" class="dialogBox">
+        <div class="dialogInner">
+          <p>Hoooola, Lucero. Soy un poderoso mago…</p>
+          <p>Jugaremos a <strong>las cajas escondidas</strong>. Presta atención.</p>
+        </div>
         <div class="decidir"><div class="btn salu">Hola????</div></div>
       </div>
 
-      <div id="f9">
-        <h1>aqui hay 3 cajas escoje bien porque de eso dependar tu futuro , Wuajajajajaja</h1>
+      <div id="f9" class="dialogBox">
+        <div class="dialogInner">
+          <p>Aquí hay <strong>3 cajas</strong>. ¡Escoge bien porque de eso dependerá tu futuro!</p>
+          <p>Wuajajajajaja…</p>
+        </div>
         <div class="decidir"><div class="btn copy">Moverme</div></div>
       </div>
 
-      <!-- Al mostrar f10 y f11 se habilita el movimiento -->
       <div id="f10">
         <div class="box ca1"></div>
         <div class="box ca2"></div>
         <div class="box ca3"></div>
       </div>
 
-      <div id="f11"><h3>escoge con sabiduria!!</h3></div>
+      <div id="f11" class="dialogBox">
+        <div class="dialogInner"><p>¡Escoge con sabiduría!</p></div>
+      </div>
     </div>
 
     <!-- Cofre 1 -->
@@ -271,18 +291,18 @@
     function showBlock(sel){ $(sel).css('display','block'); }
     function hide(sel){ $(sel).css('display','none'); }
 
-    // ======== AUDIO GLOBAL ========
+    /* ======= AUDIO GLOBAL ======= */
     (function(){
       const audio = document.getElementById('bgm');
       const btn = document.getElementById('audioToggle');
-      audio.volume = 0.35;
+      audio.volume = 0.8;  // volumen alto
+      audio.muted = false;
 
       function tryPlay(){
-        audio.play().then(()=>{ /* ok */ }).catch(()=>{
-          // algunos navegadores bloquean autoplay con sonido hasta interacción
+        audio.play().catch(()=>{
           const resume = () => {
             audio.muted = false;
-            audio.play().catch(()=>{ /* si falla, no hacemos nada */ });
+            audio.play().catch(()=>{});
             window.removeEventListener('click', resume);
             window.removeEventListener('keydown', resume);
           };
@@ -293,23 +313,27 @@
       tryPlay();
 
       btn.addEventListener('click', ()=>{
-        if(audio.muted){ audio.muted = false; btn.textContent = '🔊 Música'; audio.play().catch(()=>{}); }
-        else{ audio.muted = true; btn.textContent = '🔇 Silencio'; }
+        if(audio.muted){ audio.muted = false; btn.textContent='🔊 Música'; audio.play().catch(()=>{}); }
+        else{ audio.muted = true; btn.textContent='🔇 Silencio'; }
       });
     })();
 
-    // ======== CONTROL DE MOVIMIENTO DEL HÉROE (bloqueable) =========
+    /* ======= HÉROE / MOVIMIENTO ======= */
     (function(){
       const hero = { el:null, x:0, y:0, w:110, h:110, speed:3.2, dir:'up' };
       const keys = { up:false, down:false, left:false, right:false };
-      let running = false;
-      let canMove = false; // se habilita recién con las cajas
+      let running = false, canMove = false;
 
-      // límites internos (ajústalos si quieres):
-      const bounds = { top:60, left:40, right:40, bottom:120 }; // más fondo para no pisar la muralla
+      // Límites para no tocar murallas (respecto al centro del sprite)
+      const bounds = {
+        top:  parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallTop')) || 60,
+        left: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallX'))   || 40,
+        right:parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallX'))   || 40,
+        bottom:parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wallBottom')) || 85
+      };
 
-      // “puerta” exacta: centrado y a 115px del borde inferior
-      const doorOffsetBottom = 115;
+      // “Puerta” muy abajo: parte del sprite queda fuera (se ve como afuera)
+      const doorOutsideFactor = 0.25; // 25% del alto queda fuera
 
       // Preload sprites
       [
@@ -323,17 +347,14 @@
         const pf = document.getElementById('f7');
         hero.el = document.getElementById('hero');
         const W = pf.clientWidth, H = pf.clientHeight;
-        // Coloca al centro X y puerta Y exacta (coordenadas = centro visual por transform)
+        // centro X y tan abajo que queda parte fuera
         hero.x = W/2;
-        hero.y = H - doorOffsetBottom;
+        hero.y = H - hero.h*(0.5 - doorOutsideFactor); // aparece más “afuera”
         place();
         if(!running){ running = true; requestAnimationFrame(loop); }
       }
 
-      function place(){
-        hero.el.style.left = hero.x + 'px';
-        hero.el.style.top  = hero.y + 'px';
-      }
+      function place(){ hero.el.style.left = hero.x+'px'; hero.el.style.top = hero.y+'px'; }
 
       function loop(){
         if(!running) return;
@@ -351,16 +372,18 @@
 
         hero.x += vx; hero.y += vy;
 
-        // límites (en coordenadas de centro)
-        const minX = bounds.left + hero.w/2;
-        const minY = bounds.top  + hero.h/2;
-        const maxX = W - (bounds.right + hero.w/2);
-        const maxY = H - (bounds.bottom + hero.h/2);
+        // Limitar SOLO cuando puede moverse (para que al inicio se vea fuera)
+        if(canMove){
+          const minX = bounds.left + hero.w/2;
+          const minY = bounds.top  + hero.h/2;
+          const maxX = W - (bounds.right + hero.w/2);
+          const maxY = H - (bounds.bottom + hero.h/2);
 
-        if(hero.x < minX) hero.x = minX;
-        if(hero.y < minY) hero.y = minY;
-        if(hero.x > maxX) hero.x = maxX;
-        if(hero.y > maxY) hero.y = maxY;
+          if(hero.x < minX) hero.x = minX;
+          if(hero.y < minY) hero.y = minY;
+          if(hero.x > maxX) hero.x = maxX;
+          if(hero.y > maxY) hero.y = maxY;
+        }
 
         if(canMove){
           if(vx>0){ setDir('right'); }
@@ -370,6 +393,7 @@
         }
 
         place();
+        hintNearChests();
         requestAnimationFrame(loop);
       }
 
@@ -387,56 +411,67 @@
         if(['arrowleft','a'].includes(k)){ keys.left = down; e.preventDefault(); }
         if(['arrowright','d'].includes(k)){ keys.right = down; e.preventDefault(); }
       }
-
       window.addEventListener('keydown', e=>key(e,true), {passive:false});
       window.addEventListener('keyup',   e=>key(e,false), {passive:false});
 
-      // API para el flujo
+      // Hint cerca de cofres
+      function hintNearChests(){
+        if(!canMove){ hide('#wizardHint'); return; }
+        const heroRect = hero.el.getBoundingClientRect();
+        const chSel = ['.ca1','.ca2','.ca3'];
+        let near = false;
+        chSel.forEach(sel=>{
+          const el = document.querySelector(sel);
+          if(!el) return;
+          const r = el.getBoundingClientRect();
+          const cx = r.left + r.width/2, cy = r.top + r.height/2;
+          const hx = heroRect.left + heroRect.width/2, hy = heroRect.top + heroRect.height/2;
+          const dist = Math.hypot(cx-hx, cy-hy);
+          if(dist < 140) near = true;
+        });
+        if(near) showFlex('#wizardHint'); else hide('#wizardHint');
+      }
+
+      // API pública
       window.__heroCtrl = {
-        start, enable:()=>{ canMove=true; }, disable:()=>{ canMove=false; }
+        start,
+        enable:()=>{ canMove=true; },
+        disable:()=>{ canMove=false; }
       };
     })();
 
-    // ======== FLUJO / DIÁLOGOS =========
+    /* ======= FLUJO / DIÁLOGOS ======= */
     $(function(){
-      // Arranque en Q1 (#f1)
       showFlex('#f1');
 
-      // Q1
       $('.q1-no').on('click', function(){ hide('.frame'); showFlex('#close1'); });
       $('.q1-si').on('click', function(){ hide('#f1'); showFlex('#f2new'); });
 
-      // Q2
       $('.q2-no').on('click', function(){ hide('.frame'); showFlex('#close2'); });
       $('.q2-seguir').on('click', function(){ hide('#f2new'); showFlex('#f3new'); });
 
-      // Q3
       $('.q3-beso, .q3-cocacho').on('click', function(){ hide('#f3new'); showFlex('#f4new'); });
 
-      // Q4
       $('.q4-no').on('click', function(){ hide('#f4new'); showFlex('#f5new'); });
-      $('.q4-seguir').on('click', function(){
-        hide('.frame'); // cierra frames de preguntas
-        showFlex('#f6');
-      });
+      $('.q4-seguir').on('click', function(){ hide('.frame'); showFlex('#f6'); });
 
-      // Entrar al mundo: Lucero queda en la puerta, sin moverse todavía
+      // Entrar al mundo: Lucero en la puerta, sin moverse aún
       $('.afi').on('click', function(){
         hide('#f6'); showFlex('#f7'); showFlex('#f8');
-        __heroCtrl.start();     // coloca a Lucero en la puerta exacta
-        __heroCtrl.disable();   // movimiento bloqueado hasta que aparezcan cajas
+        __heroCtrl.start();
+        __heroCtrl.disable();
       });
 
-      // Diálogo con mago → respuesta de Lucero
+      // Mago -> respuesta
       $('.salu').on('click', function(){ hide('#f8'); showFlex('#f9'); });
 
-      // Mostrar cajas y texto → AHORA se habilita el movimiento
+      // Aparecen cajas y se habilita movimiento (ya puede “entrar”)
       $('.copy').on('click', function(){
         hide('#f9'); showFlex('#f10'); showFlex('#f11');
-        __heroCtrl.enable();    // movimiento habilitado recién aquí
+        __heroCtrl.enable();
       });
 
-      // Cofres / resto del flujo
+      // Cofres
       $('.ca1').on('click', function(){ showFlex('#f12'); showBlock('#f13'); });
       $('.go').on('click', function(){ hide('#f13'); showBlock('#f14'); });
       $('.carta').on('click', function(){ hide('#f12'); });
@@ -449,6 +484,15 @@
       $('.meme').on('click', function(){ hide('#f19'); showFlex('#f20'); });
       $('.meme2').on('click', function(){ hide('#f20'); showFlex('#f21'); });
       $('.yes').on('click', function(){ hide('#f21'); showFlex('#f22'); });
+
+      // Accesibilidad
+      $('.btn').attr('tabindex','0').attr('role','button');
+      $(document).on('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          const el = document.activeElement;
+          if($(el).is('.btn')){ e.preventDefault(); $(el).click(); }
+        }
+      });
     });
   </script>
 </body>
