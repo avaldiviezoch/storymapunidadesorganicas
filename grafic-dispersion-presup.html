@@ -1,1 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>La Aventura — Regalo interactivo</title>
+
+<!-- Fuentes -->
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root{ --pink:#ff60b4; --blue:#72efff; --arenaW:850px; --arenaH:550px; --wallPad:18px; }
+html,body{height:100%;}
+*{box-sizing:border-box}
+body{
+  margin:0; background:#111; color:#f9f9f9;
+  font-family: Inconsolata, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  overflow:hidden;
+}
+a{ text-decoration:none; color:#f9f9f9 }
+
+/* LAYOUT GENERAL */
+#out-all{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:12px;
+}
+
+/* Frames de preguntas/texto */
+.frame{
+  position:absolute; width:720px; max-width:94vw; min-height:300px; max-height:86vh;
+  display:none; align-items:center; justify-content:center; flex-direction:column;
+  background:#111; box-shadow:0 10px 40px rgba(0,0,0,.4); border-radius:12px; padding:20px;
+  text-align:center; gap:8px;
+}
+#f1{display:flex}
+
+.decidir{display:flex; align-items:center; justify-content:center; flex-wrap:wrap}
+.btn{
+  font:25px 'VT323', monospace; margin:10px; opacity:0; animation:visible 1s .6s forwards;
+  cursor:pointer; color:#f9f9f9; padding:8px 14px; border-radius:10px; border:1px dashed rgba(255,255,255,.18)
+}
+.btn:focus{ outline:2px dashed var(--blue); outline-offset:2px }
+
+h1,h2,h3{margin:6px 10px}
+h1{
+  overflow:hidden; border-right:.15em solid #fff; white-space:nowrap; letter-spacing:.03em;
+  animation: typing 2.8s steps(38,end), blink-caret .75s step-end infinite;
+  font:30px 'VT323', monospace;
+}
+h2,h3{font:26px 'VT323', monospace}
+
+/* Mundo (arena) */
+#f7{
+  position:absolute; width:var(--arenaW); max-width:95vw; height:var(--arenaH); max-height:85vh;
+  background:url(https://i.imgur.com/kx3psEN.png) center/cover no-repeat;
+  display:none; align-items:center; justify-content:center; flex-direction:column;
+  border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.45);
+  /* borde interno de muros */
+  outline: var(--wallPad) solid rgba(0,0,0,.75);
+  outline-offset:-var(--wallPad);
+}
+
+/* HUD textos del mago dentro de la arena (no salen de muros) */
+#wizardHint, #wizardNear {
+  position:absolute; left:calc(var(--wallPad) + 8px); right:calc(var(--wallPad) + 8px);
+  top:calc(var(--wallPad) + 8px); z-index:30;
+  text-align:center; margin:0 auto; max-width: min(560px, 80vw);
+  font: clamp(18px, 4.5vw, 26px) 'VT323', monospace;
+  display:none; padding:6px 10px; background:rgba(0,0,0,.45); border:1px dashed rgba(255,255,255,.2); border-radius:10px;
+}
+
+/* Subpantallas dentro del mundo */
+#f8,#f9{position:absolute; bottom:120px; left:calc(var(--wallPad) + 20px); right:calc(var(--wallPad) + 20px);
+  display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center;}
+#f10{position:absolute; bottom:calc(var(--wallPad) + 10px); left:calc(var(--wallPad) + 20px); right:calc(var(--wallPad) + 20px); height:160px; display:none; align-items:center; justify-content:center;}
+#f11{position:absolute; top:calc(var(--wallPad) + 10px); display:none; flex-direction:column; text-align:center; transform:scale(.9)}
+
+/* Cajas */
+.box{
+  width:88px; height:88px; background:url(https://i.imgur.com/ViqP2fB.png) center/cover no-repeat; margin:10px 20px; cursor:pointer; transition:transform .12s ease;
+}
+.box.tremble{ animation:tremble .6s infinite }
+.box:hover{ transform:translateY(-2px) }
+.box.opened{ background:url(https://i.imgur.com/FIrcwmM.png) center/cover no-repeat; }
+
+/* Personaje (Lucero) */
+#player{
+  position:absolute; width:88px; height:112px; z-index:25; pointer-events:none;
+  /* por encima del fondo */
+}
+#player img{ width:100%; height:100%; object-fit:contain; image-rendering:auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+
+/* Puerta (punto de inicio) */
+#door{
+  position:absolute; bottom:calc(var(--wallPad) - 4px); left:50%; transform:translateX(-50%);
+  width:110px; height:40px; background:rgba(0,0,0,.75); border:1px solid rgba(255,255,255,.15); border-radius:8px;
+  z-index:5;
+}
+
+/* Zonas clicables para limitar movimiento (boundaries) */
+#arenaTouch{ position:absolute; inset:var(--wallPad); }
+
+/* Cofres en posiciones fijas */
+.box.ca1{ position:absolute; left:calc(15% + var(--wallPad)); top:calc(40%); }
+.box.ca2{ position:absolute; left:50%; transform:translateX(-50%); top:calc(28%); }
+.box.ca3{ position:absolute; right:calc(12% + var(--wallPad)); top:calc(48%); }
+
+/* PANTALLAS fuera del mundo (carta/anillos/final) */
+#f12,#f18,#f15{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column;}
+#f13{display:none; text-align:center}
+#f13 a{display:inline-block; margin-top:10px; font:25px 'VT323', monospace}
+#f14,#f15-content{background:#111; position:absolute; inset:0; font:26px 'VT323', monospace; text-align:justify; display:none; padding:28px; line-height:1.35;}
+#f16,#f17{position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px}
+.ring{width:150px; height:150px; background:url(https://i.imgur.com/oEs8TdL.png) center/cover no-repeat}
+.ichigo{width:200px; height:200px; background:url(https://i.imgur.com/hGY3pGX.png) center/cover no-repeat}
+#f19,#f20,#f21,#f22{position:absolute; inset:0; background:#111; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px;}
+#f22{font:26px 'VT323', monospace; text-align:justify}
+
+/* Animaciones */
+@keyframes typing{from{width:0} to{width:105%}}
+@keyframes blink-caret{from,to{border-color:transparent} 50%{border-color:#fff}}
+@keyframes visible{from{opacity:0} to{opacity:1}}
+@keyframes tremble{
+  0%{ transform:translate(0,0) rotate(0deg) }
+  20%{ transform:translate(1px,-1px) rotate(1deg) }
+  40%{ transform:translate(-1px,1px) rotate(-1deg) }
+  60%{ transform:translate(1px,0) rotate(1deg) }
+  80%{ transform:translate(-1px,1px) rotate(0deg) }
+  100%{ transform:translate(0,0) rotate(0deg) }
+}
+
+/* Overlay Flores + audio */
+#flowersOverlay{
+  position:fixed; inset:0; z-index:99999; background:#010113; color:#fff; display:none;
+}
+#flowersOverlay .flores-wrap{ position:absolute; inset:0; overflow:hidden; }
+#flowersOverlay .top-message{
+  position:absolute; left:12px; right:12px; top:10px;
+  text-align:center; font: clamp(22px, 5vw, 32px) 'VT323', monospace;
+  z-index:50; text-shadow:0 2px 10px rgba(0,0,0,.6);
+}
+#flowersOverlay .night{
+  position:absolute; left:50%; top:0; transform:translateX(-50%);
+  width:100%; height:100%; filter: blur(0.1vmin);
+  background-image:
+    radial-gradient(ellipse at top, transparent 0%, #010113),
+    radial-gradient(ellipse at bottom,#010113, rgba(145,233,255,0.2)),
+    repeating-linear-gradient(220deg, #000 0px, #000 19px, transparent 19px, transparent 22px),
+    repeating-linear-gradient(189deg, #000 0px, #000 19px, transparent 19px, transparent 22px),
+    repeating-linear-gradient(148deg, #000 0px, #000 19px, transparent 19px, transparent 22px),
+    linear-gradient(90deg, rgb(255,94,0), rgb(240,240,240));
+}
+#flowersOverlay .flowers{ position:absolute; left:50%; bottom:0; transform:translateX(-50%) scale(.9); width:110vmin; max-width:1200px; pointer-events:none; }
+
+/* Mini geometría para las flores (simplificada) */
+#flowersOverlay .flower{ position:absolute; bottom:10vmin; transform-origin:bottom center; z-index:10; }
+#flowersOverlay .flower--1{ animation:moving-flower-1 4s linear infinite }
+#flowersOverlay .flower--2{ left:50%; transform:rotate(20deg); animation:moving-flower-2 4s linear infinite }
+#flowersOverlay .flower--3{ left:50%; transform:rotate(-15deg); animation:moving-flower-3 4s linear infinite }
+#flowersOverlay .flower__line{ height:55vmin; width:1.5vmin; background-image:linear-gradient(to left, rgba(0,0,0,.2),transparent,rgba(255,255,255,.2)), linear-gradient(to top, transparent 10%, #056d24,#028137); box-shadow:inset 0 0 2px rgba(0,0,0,.5) }
+#flowersOverlay .flower__leafs{ position:relative; }
+#flowersOverlay .flower__leaf{ position:absolute; bottom:0; left:50%; width:8vmin; height:11vmin; border-radius:51% 49% 47% 53%/44% 45% 55% 69%; background:#e6f331; opacity:.9 }
+#flowersOverlay .flower__leaf--1{ transform:translate(-10%,1%) rotateY(40deg) rotateX(-50deg) }
+#flowersOverlay .flower__leaf--2{ transform:translate(-50%,-4%) rotateX(40deg) }
+#flowersOverlay .flower__leaf--3{ transform:translate(-90%,0%) rotateY(45deg) rotateX(50deg) }
+#flowersOverlay .flower__leaf--4{ width:8vmin;height:8vmin; transform-origin:bottom left; border-radius:4vmin 10vmin 4vmin 4vmin; transform:translate(0%,18%) rotateX(70deg) rotate(-43deg); opacity:.8; z-index:1 }
+#flowersOverlay .flower__white-circle{ position:absolute; left:-3.5vmin; top:-3vmin; width:9vmin; height:4vmin; border-radius:50%; background:#fff }
+#flowersOverlay .flower__light{ position:absolute; bottom:0; width:1vmin; height:1vmin; background:#fffb00; border-radius:50%; filter:blur(.2vmin); animation:light-ans 4s linear infinite backwards }
+#flowersOverlay .flower__grass{ --c:#028137; --line-w:1.5vmin; position:absolute; bottom:12vmin; left:-7vmin; display:flex; flex-direction:column; align-items:flex-end; z-index:20; transform-origin:bottom center; transform:rotate(-48deg) rotateY(40deg); animation:moving-grass 2s linear infinite }
+#flowersOverlay .flower__grass--top{ width:7vmin; height:10vmin; border-top-right-radius:100%; border-right:var(--line-w) solid var(--c); }
+#flowersOverlay .flower__grass--bottom{ margin-top:-2px; width:var(--line-w); height:25vmin; background-image:linear-gradient(to top, transparent, var(--c)) }
+@keyframes moving-flower-1{0%,100%{transform:rotate(2deg)}50%{transform:rotate(-2deg)}}
+@keyframes moving-flower-2{0%,100%{transform:rotate(18deg)}50%{transform:rotate(14deg)}}
+@keyframes moving-flower-3{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(-20deg) rotateY(-10deg)}}
+@keyframes moving-grass{0%,100%{transform:rotate(-48deg) rotateY(40deg)}50%{transform:rotate(-50deg) rotateY(40deg)}}
+@keyframes light-ans{
+  0%{opacity:0; transform:translateY(0)}
+  25%{opacity:1; transform:translateY(-5vmin) translateX(-2vmin)}
+  50%{opacity:1; transform:translateY(-15vmin) translateX(2vmin)}
+  75%{transform:translateY(-20vmin) translateX(-2vmin)}
+  100%{transform:translateY(-30vmin); opacity:0; filter:blur(1vmin)}
+}
+
+/* Responsive tipografía */
+@media (max-width:560px){
+  h1,h2,h3{font-size:22px}
+  #f11{transform:scale(.95)}
+}
+
+/* Accesibilidad foco */
+.btn:focus-visible{ outline:2px dashed var(--pink); outline-offset:2px }
+</style>
+</head>
+<body>
+<div id="out-all">
+
+  <!-- PREGUNTAS -->
+  <div id="f1" class="frame">
+    <h1>¿Quieres saber algo de mí?</h1>
+    <div class="decidir">
+      <div class="btn q1-si">&gt; sí</div>
+      <div class="btn q1-no">&gt; no</div>
+    </div>
+  </div>
+
+  <div id="close1" class="frame">
+    <h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2>
+  </div>
+
+  <div id="f2new" class="frame">
+    <h3>A veces las parejas pelean, a veces tú te cansas de repetir cosas a tu pareja, pero no significa que no te escuche: solo que hace las cosas diferente…</h3>
+    <div class="decidir">
+      <div class="btn q2-seguir">&gt; seguir</div>
+      <div class="btn q2-no">&gt; no seguir</div>
+    </div>
+  </div>
+
+  <div id="close2" class="frame">
+    <h2>Entiendo, cierra el aplicativo y disculpa las molestias.</h2>
+  </div>
+
+  <div id="f3new" class="frame">
+    <h3>Antonio dice que no significa que no te ame; hace todo por ti y te da detalles —no siempre en los mismos días— y también se frustra cuando le dices cosas que no hace.</h3>
+    <div class="decidir">
+      <div class="btn q3-beso">&gt; darle un beso?</div>
+      <div class="btn q3-cocacho">&gt; darle un cocacho</div>
+    </div>
+  </div>
+
+  <div id="f4new" class="frame">
+    <h3>Si no quieres seguir en esta aventura, es entendible, pero él se supera cada día y espera seguir.</h3>
+    <div class="decidir">
+      <div class="btn q4-seguir">&gt; seguir aventura?</div>
+      <div class="btn q4-no">&gt; no seguir aventura</div>
+    </div>
+  </div>
+
+  <div id="f5new" class="frame">
+    <h3>Antonio recibió un correo electrónico diciendo que pusiste “no seguir aventura” :(</h3>
+  </div>
+
+  <!-- INTRO AL MUNDO -->
+  <div id="f6" class="frame" style="display:none">
+    <div class="img1" style="width:120px;height:120px;background:url(https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000) center/contain no-repeat; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.35);"></div>
+    <h3>esta eres tú, con tu pelo un poco largo y tu ropa amarilla en tendencia; jugaremos un juego: tienes que escoger algo del poderoso mago.</h3>
+    <div class="btn afi">Comenzar !!!</div>
+  </div>
+
+  <!-- MUNDO (ARENA) -->
+  <div id="f7">
+    <!-- Puerta -->
+    <div id="door"></div>
+
+    <!-- Personaje -->
+    <div id="player">
+      <img id="sprite" alt="Lucero" src="https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000">
+    </div>
+
+    <!-- HUD Magos -->
+    <div id="wizardHint"></div>
+    <div id="wizardNear"></div>
+
+    <!-- Mensajes del mago de guion -->
+    <div id="f8">
+      <h1>Hoooola lucero, soy un poderoso mago y jugaremos a las cajas escondidas</h1>
+      <div class="decidir"><div class="btn salu">Hola????</div></div>
+    </div>
+
+    <div id="f9">
+      <h1>aquí hay 3 cajas, escoge bien porque de eso dependerá tu futuro. ¡Wuajajajajaja!</h1>
+      <div class="decidir"><div class="btn copy">Moverme</div></div>
+    </div>
+
+    <div id="f10">
+      <div class="box ca1" data-target="#f12" title="Cofre 1"></div>
+      <div class="box ca2" data-target="#f18" title="Cofre 2"></div>
+      <div class="box ca3" data-target="#f15" title="Cofre 3"></div>
+    </div>
+
+    <div id="f11">
+      <h3>escoge con sabiduría!!</h3>
+    </div>
+
+    <!-- Área táctil para mover -->
+    <div id="arenaTouch"></div>
+  </div>
+
+  <!-- COFRE 1 -->
+  <div id="f12">
+    <div id="f13">
+      <h1>por favor, reproduce esta canción antes de leer</h1>
+      <a href="https://open.spotify.com/track/6EBPGW7GqFlGYAY1fSXwjI?si=5spKltg4SJu6NXFOkXVvMw" target="_blank" rel="noopener noreferrer">&gt; reproduces la canción.</a>
+      <br/>
+      <span class="btn go">&gt; seguir leyendo.</span>
+    </div>
+
+    <div id="f14">
+      Si alguien me hubiera preguntado siete meses atrás si creía volver a darme la oportunidad de estar con alguien, me habría reído en su cara. No es que no crea en el amor, o que sienta que soy demasiado bueno para ello, sino que es más bien todo lo contrario. "No lo merezco", repetía, pero, ¿es que no lo merecía? ¿o que estaba demasiado asustado de abrirme a alguien que no fueran mis amistades? Hasta el día de hoy, aún no encuentro la respuesta, pero sé, bastante bien, que sí merezco ser amado, y me lo has enseñado tú en estos pocos meses que llevas tomando mi manito.
+      <br><br>
+      No soy bueno con las palabras, eso siempre ha sido lo tuyo. Pero si hay algo en lo que sé que puedo cumplir, es haciendo cositas. Espero que guardes este pequeño regalito como algo que te recuerde que tú también mereces amor, que estamos juntos en esto y que sin importar qué tantas inseguridades se pongan en nuestro camino, siempre nos tendremos el uno al otro para apoyarnos.
+      <br><br>
+      No miento cuando digo que eres mi todo, Ichigo. Agradezco cada día que hayas llegado a mi vida, y espero que quieras quedarte acá mucho tiempo más.
+      <br><br>
+      <div class="btn carta">&gt; vuelves a abrir las otras cajas.</div>
+    </div>
+  </div>
+
+  <!-- COFRE 3 (anillos) -->
+  <div id="f15">
+    <div id="f16">
+      <h3>¡Oh, mira, ves algo brillante ahí al centro!</h3>
+      <h2>Deberías tomarlo...</h2>
+      <div class="btn anillo">&gt; lo recoges.</div>
+    </div>
+
+    <div id="f17">
+      <div class="ring"></div>
+      <div class="ichigo"></div>
+      <h3>¡has encontrado los anillos!, pero... ¿para qué se supone que son?</h3>
+      <h2>¿quieres llevártelos?</h2>
+      <div class="btn marry">&gt; guardas los anillos en tu bolsillo. esperemos que ningún ladrón te los robe...</div>
+    </div>
+  </div>
+
+  <!-- COFRE 2 (final/pregunta) -->
+  <div id="f18">
+    <div id="f19">
+      <h3>¡pero si ya hemos llegado al final! ¿tan rápido?</h3>
+      <h2>¡oh, no, pausa, pausa! aún queda una última cosa...</h2>
+      <div class="decidir"><div class="btn meme">&gt; ¿queda algo más?</div></div>
+    </div>
+
+    <div id="f20">
+      <h3>sí, necesitamos que respondas una pregunta... ¡es solo una!</h3>
+      <h2>aquí vamos</h2>
+      <div class="decidir"><div class="btn meme2">&gt; ¿s-supongo que sí...?</div></div>
+    </div>
+
+    <div id="f21">
+      <h3>ichigo. una vez no ha sido suficiente y quiero oírlo de nuevo.</h3>
+      <h2>¿quieres casarte conmigo?</h2>
+      <div class="decidir">
+        <div class="btn yes">&gt; ¡SIIII!</div>
+        <div class="btn yes" style="color:red">&gt; ¡SIIII EN ROJO!</div>
+      </div>
+    </div>
+
+    <div id="f22">
+      me gustaría decir que tengo un final para esta historia, pero, ambos sabemos que apenas estamos comenzando, ¿cierto? no hay cómo acabar si la aventura todavía está verde.
+      <br><br>
+      el único final que quiero contigo es uno feliz, dónde termines de leer esto, vengas a mis brazos y me beses. ¿Sería eso mucho pedir?
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY FLORES + AUDIO -->
+<div id="flowersOverlay" style="display:none">
+  <div class="flores-wrap">
+    <div class="top-message">Antonio te ama mucho, él espera seguir su historia contigo.</div>
+    <div class="night"></div>
+    <div class="flowers">
+      <div class="flower flower--1">
+        <div class="flower__leafs">
+          <div class="flower__leaf flower__leaf--1"></div>
+          <div class="flower__leaf flower__leaf--2"></div>
+          <div class="flower__leaf flower__leaf--3"></div>
+          <div class="flower__leaf flower__leaf--4"></div>
+          <div class="flower__white-circle"></div>
+          <div class="flower__light"></div><div class="flower__light"></div><div class="flower__light"></div><div class="flower__light"></div>
+        </div>
+        <div class="flower__line"></div>
+      </div>
+      <div class="flower flower--2">
+        <div class="flower__leafs">
+          <div class="flower__leaf flower__leaf--1"></div>
+          <div class="flower__leaf flower__leaf--2"></div>
+          <div class="flower__leaf flower__leaf--3"></div>
+          <div class="flower__leaf flower__leaf--4"></div>
+          <div class="flower__white-circle"></div>
+          <div class="flower__light"></div><div class="flower__light"></div><div class="flower__light"></div><div class="flower__light"></div>
+        </div>
+        <div class="flower__line"></div>
+      </div>
+      <div class="flower flower--3">
+        <div class="flower__leafs">
+          <div class="flower__leaf flower__leaf--1"></div>
+          <div class="flower__leaf flower__leaf--2"></div>
+          <div class="flower__leaf flower__leaf--3"></div>
+          <div class="flower__leaf flower__leaf--4"></div>
+          <div class="flower__white-circle"></div>
+          <div class="flower__light"></div><div class="flower__light"></div><div class="flower__light"></div><div class="flower__light"></div>
+        </div>
+        <div class="flower__line"></div>
+      </div>
+      <div class="flower__grass" style="left:10vmin">
+        <div class="flower__grass--top"></div>
+        <div class="flower__grass--bottom"></div>
+      </div>
+    </div>
+  </div>
+  <audio id="loveAudio" src="https://lh3.googleusercontent.com/d/1CyZVteqNTVDNAjZiUQZxczR4azqBSakX=w1000" preload="auto" loop></audio>
+</div>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+<script>
+function showFlex(sel){ $(sel).css('display','flex'); }
+function showBlock(sel){ $(sel).css('display','block'); }
+function hide(sel){ $(sel).css('display','none'); }
+
+/* ===== Overlay flores + audio ===== */
+function showFlowersOverlay(){
+  const ov = document.getElementById('flowersOverlay');
+  const a = document.getElementById('loveAudio');
+  if(!ov || !a) return;
+  ov.style.display = 'block';
+  a.volume = 1.0; a.muted = false;
+  a.play().catch(()=>{ a.muted=true; a.play().finally(()=>{ a.muted=false; a.volume=1.0; }); });
+}
+// cerrar overlay tocando afuera
+document.getElementById('flowersOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'flowersOverlay'){
+    e.currentTarget.style.display='none';
+    const a = document.getElementById('loveAudio'); if(a) a.pause();
+  }
+});
+
+/* ===== Juego ===== */
+$(function(){
+  // Flujo preguntas
+  $('.q1-no').on('click', function(){ hide('.frame'); showFlex('#close1'); });
+  $('.q1-si').on('click', function(){ hide('#f1'); showFlex('#f2new'); });
+
+  $('.q2-no').on('click', function(){ hide('.frame'); showFlex('#close2'); });
+  $('.q2-seguir').on('click', function(){ hide('#f2new'); showFlex('#f3new'); });
+
+  $('.q3-beso, .q3-cocacho').on('click', function(){ hide('#f3new'); showFlex('#f4new'); });
+
+  $('.q4-no').on('click', function(){ hide('#f4new'); showFlex('#f5new'); });
+  $('.q4-seguir').on('click', function(){ hide('.frame'); showFlex('#f6'); });
+
+  // Intro -> Mundo
+  $('.afi').on('click', function(){
+    hide('#f6'); showFlex('#f7'); showFlex('#f8');
+    initWorld(); // prepara posiciones y controles
+  });
+  $('.salu').on('click', function(){ hide('#f8'); showFlex('#f9'); });
+  $('.copy').on('click', function(){
+    hide('#f9'); showFlex('#f10'); showFlex('#f11');
+    $('#wizardHint').text('Muévete dentro de las murallas y acércate a un cofre.').fadeIn(200);
+  });
+
+  // Cofre 1
+  $('.ca1').on('click', function(){ openChest($(this)); });
+  // Cofre 2
+  $('.ca2').on('click', function(){ openChest($(this)); });
+  // Cofre 3
+  $('.ca3').on('click', function(){ openChest($(this)); });
+
+  // Pantalla Carta
+  $('.go').on('click', function(){ hide('#f13'); showBlock('#f14'); });
+  $('.carta').on('click', function(){ hide('#f12'); showFlex('#f7'); });
+  // Anillos
+  $('.anillo').on('click', function(){ hide('#f16'); showFlex('#f17'); });
+  $('.marry').on('click', function(){ hide('#f15'); hide('#f17'); showFlex('#f7'); });
+  // Final
+  $('.meme').on('click', function(){ hide('#f19'); showFlex('#f20'); });
+  $('.meme2').on('click', function(){ hide('#f20'); showFlex('#f21'); });
+  $('.yes').on('click', function(){ hide('#f21'); showFlex('#f22'); });
+
+  // Accesibilidad
+  $('.btn').attr('tabindex','0').attr('role','button');
+  $(document).on('keydown', function(e){
+    if(e.key === 'Enter' || e.key === ' '){
+      const el = document.activeElement;
+      if($(el).is('.btn')){ e.preventDefault(); $(el).click(); }
+    }
+  });
+});
+
+/* ===== Mundo / Movimiento ===== */
+let arena, player, sprite, hintNear;
+let px=0, py=0, speed=2.3, moving=false, dir='down';
+const sprites = {
+  down:  "https://lh3.googleusercontent.com/d/1IWFy6CLWeEFBnuv1do-p9O2xiO8mP8na=w1000",     // frente
+  up:    "https://lh3.googleusercontent.com/d/1mSX8bhUoXpRKsKlufh9bKKX2JsckTxvP=w1000",   // espaldas
+  right: "https://lh3.googleusercontent.com/d/1m0lnXiIshE7uJE1sGA5HkdkcnZR01nIc=w1000",   // mirar derecha
+  left:  "https://lh3.googleusercontent.com/d/1_uQuJXLlecsnZnjiRlsgdgf9PrfJoJS_=w1000"    // mirar izquierda
+};
+
+function initWorld(){
+  arena = document.getElementById('f7');
+  player = document.getElementById('player');
+  sprite = document.getElementById('sprite');
+  hintNear = document.getElementById('wizardNear');
+
+  // Posicionar a Lucero justo "afuera" de la puerta (un poco más abajo)
+  const rect = arena.getBoundingClientRect();
+  const pad = parseInt(getComputedStyle(arena).getPropertyValue('--wallPad')) || 18;
+  const door = document.getElementById('door');
+  const pw = player.offsetWidth; const ph = player.offsetHeight;
+
+  // Coordenadas relativas dentro del área jugable (inset por wallPad)
+  const playLeft = rect.left + pad;
+  const playTop = rect.top + pad;
+  const playW = rect.width - pad*2;
+  const playH = rect.height - pad*2;
+
+  // Empezar centrado horizontal y un poco por debajo de la puerta (que está al borde inferior)
+  px = playLeft + playW/2 - pw/2;
+  py = playTop + playH - ph + 22; // 22px "afuera", luego entrará
+  setPlayerPos(px, py);
+  setSprite('up'); // mirando hacia adentro (espaldas a cámara)
+
+  // Hints
+  $('#wizardHint').text('Hoooola lucero... (ya puedes moverte cuando las cajas estén visibles)').hide();
+  $('#wizardNear').hide();
+
+  setupControls(playLeft, playTop, playW, playH);
+}
+
+function setSprite(d){
+  dir = d;
+  sprite.src = sprites[d] || sprites.down;
+}
+
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+function setPlayerPos(x, y){
+  player.style.left = x + 'px';
+  player.style.top  = y + 'px';
+}
+
+function setupControls(playLeft, playTop, playW, playH){
+  const pad = parseInt(getComputedStyle(arena).getPropertyValue('--wallPad')) || 18;
+  const bounds = {
+    x1: playLeft,
+    y1: playTop,
+    x2: playLeft + playW,
+    y2: playTop + playH
+  };
+
+  // Teclado
+  const keys = {ArrowUp:false,ArrowDown:false,ArrowLeft:false,ArrowRight:false, w:false,a:false,s:false,d:false};
+  function keyDir(){
+    let vx=0, vy=0;
+    if(keys.ArrowUp||keys.w) vy-=1;
+    if(keys.ArrowDown||keys.s) vy+=1;
+    if(keys.ArrowLeft||keys.a) vx-=1;
+    if(keys.ArrowRight||keys.d) vx+=1;
+    return {vx,vy};
+  }
+  window.addEventListener('keydown', e=>{ if(keys.hasOwnProperty(e.key)){ keys[e.key]=true; moving=true; }});
+  window.addEventListener('keyup',   e=>{ if(keys.hasOwnProperty(e.key)){ keys[e.key]=false; moving=false; }});
+
+  // Click/tap: moverse hacia el punto
+  let clickTarget=null;
+  document.getElementById('arenaTouch').addEventListener('click', (e)=>{
+    const r = arena.getBoundingClientRect();
+    const tx = clamp(e.clientX, bounds.x1, bounds.x2) - player.offsetWidth/2;
+    const ty = clamp(e.clientY, bounds.y1, bounds.y2) - player.offsetHeight/2;
+    clickTarget = {x:tx, y:ty};
+    moving = true;
+  });
+
+  // Swipe/drag: seguir el dedo
+  let dragging=false;
+  const touch = document.getElementById('arenaTouch');
+  touch.addEventListener('touchstart', e=>{ dragging=true; if(e.touches[0]) e.preventDefault(); });
+  touch.addEventListener('touchmove', e=>{
+    if(!dragging) return;
+    const t = e.touches[0]; if(!t) return;
+    const tx = clamp(t.clientX, bounds.x1, bounds.x2) - player.offsetWidth/2;
+    const ty = clamp(t.clientY, bounds.y1, bounds.y2) - player.offsetHeight/2;
+    clickTarget = {x:tx, y:ty};
+    moving = true;
+  }, {passive:false});
+  touch.addEventListener('touchend', ()=>{ dragging=false; moving=false; });
+
+  // Loop animación
+  function loop(){
+    let {vx,vy} = keyDir();
+    let nx=px, ny=py;
+
+    if(clickTarget){
+      const dx = clickTarget.x - px;
+      const dy = clickTarget.y - py;
+      const dist = Math.hypot(dx,dy);
+      if(dist>2){
+        nx += (dx/dist) * speed*2;
+        ny += (dy/dist) * speed*2;
+        if(Math.abs(dx) > Math.abs(dy)) setSprite(dx>0?'right':'left');
+        else setSprite(dy>0?'down':'up');
+        moving = true;
+      }else{
+        clickTarget=null; moving=false;
+      }
+    }else if(vx||vy){
+      const len = Math.hypot(vx,vy) || 1;
+      nx += (vx/len)*speed; ny += (vy/len)*speed;
+      if(Math.abs(vx) > Math.abs(vy)) setSprite(vx>0?'right':'left');
+      else setSprite(vy>0?'down':'up');
+    }
+
+    // Limitar a muros
+    nx = clamp(nx, bounds.x1, bounds.x2 - player.offsetWidth);
+    ny = clamp(ny, bounds.y1, bounds.y2 - player.offsetHeight);
+
+    px = nx; py = ny; setPlayerPos(px,py);
+    proximityCheck();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+/* Proximidad a cofres: temblor + mensaje del mago */
+function proximityCheck(){
+  const boxes = document.querySelectorAll('.box');
+  let anyNear = false;
+  boxes.forEach(b=>{
+    const br = b.getBoundingClientRect();
+    const pr = player.getBoundingClientRect();
+    const cx = br.left + br.width/2;
+    const cy = br.top + br.height/2;
+    const pxC = pr.left + pr.width/2;
+    const pyC = pr.top + pr.height/2;
+    const d = Math.hypot(cx-pxC, cy-pyC);
+
+    if(d < 140){
+      b.classList.add('tremble');
+      anyNear = true;
+    }else{
+      b.classList.remove('tremble');
+    }
+  });
+
+  const nearEl = $('#wizardNear');
+  if(anyNear){
+    if(nearEl.is(':hidden')){
+      nearEl.text('¿Estás segura? Dale click al cofre.').fadeIn(120);
+    }
+  }else{
+    nearEl.fadeOut(180);
+  }
+}
+
+/* Abrir cofre con confirmación y continuar */
+function openChest($box){
+  // Solo abrir si las cajas ya están visibles
+  if(!$('#f10').is(':visible')) return;
+
+  // Confirmación
+  if(!window.confirm('¿Estás segura? (Dale click en Aceptar para abrir)')) return;
+
+  $box.addClass('opened');
+
+  // Mostrar overlay de flores + audio
+  showFlowersOverlay();
+
+  // Ir a la sección correspondiente
+  const target = $box.data('target');
+  hide('#f7'); hide('#wizardHint'); hide('#wizardNear');
+
+  if(target==='#f12'){ // carta
+    showFlex('#f12'); showBlock('#f13');
+  }else if(target==='#f15'){ // anillos
+    showFlex('#f15'); showFlex('#f16');
+  }else if(target==='#f18'){ // final/pregunta
+    showFlex('#f18'); showFlex('#f19');
+  }
+}
+</script>
+</body>
+</html>
 
