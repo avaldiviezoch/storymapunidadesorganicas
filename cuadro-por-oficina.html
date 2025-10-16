@@ -38,8 +38,12 @@
   .h2{font-weight:400;font-size:14px}
   .h3{font-style:italic;font-size:13px}
 
-  /* Botón */
-  .btn{border:0;background:transparent;cursor:pointer;display:flex;align-items:center;font:inherit;color:inherit}
+  /* Botón (ajuste para alinear texto multi-línea) */
+  .btn{
+    border:0;background:transparent;cursor:pointer;font:inherit;color:inherit;
+    display:grid;grid-template-columns: 1.3rem 1fr;align-items:center;column-gap:.4rem;
+    text-align:left; /* asegura alineación del contenido textual */
+  }
 
   /* === Flechas animadas según tu especificación === */
   .chev{
@@ -47,7 +51,7 @@
     --chev-glow:rgba(234,88,12,.45);
     width:1.3rem;height:1.3rem;position:relative;
     display:inline-grid;place-items:center;color:var(--chev-color);
-    margin-right:.4rem;
+    /* sin margin-right: lo maneja el grid con column-gap */
   }
   .chev .arrow{
     position:absolute;width:16px;height:16px;opacity:0;
@@ -194,7 +198,7 @@ function render({tree,total}){
       <tr>
         <th class="h1">
           <button class="btn" aria-expanded="false" aria-controls="${oId}">
-            ${chevHTML()} ${ofi}
+            ${chevHTML()} <span class="label">${ofi}</span>
           </button>
         </th>
         ${cells(aggO)}
