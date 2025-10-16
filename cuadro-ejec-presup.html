@@ -3,254 +3,236 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Ejecución presupuestal por programa presupuestal</title>
+<title>Ejecución presupuestal por programa Presupuestal</title>
 <style>
   *,*::before,*::after{box-sizing:border-box}
   :root{
-    --bg:#fff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
-    --w-name:420px;     /* Primera columna más estrecha */
-    --w-num:150px;      /* columnas estándar */
-    --w-last:180px;     /* última columna un poco más amplia */
-    --w-pad:30px;       /* espaciador invisible a la derecha */
-    --fs-body:13.4px; --fs-head:13.4px;
+    --bg:#ffffff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
+    --fs-body:13.5px;
   }
-
-  html,body{
-    margin:0;background:var(--bg);color:var(--ink);
-    font-family:system-ui,Segoe UI,Roboto,Arial;
-    overflow:hidden;
-  }
-
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial;overflow:hidden}
   .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:10px}
-  .card{
-    flex:1;max-width:1400px;background:#fff;border:1px solid var(--line);
-    border-radius:12px;box-shadow:0 10px 24px rgba(2,6,23,.06);
-    display:flex;flex-direction:column;overflow:hidden
-  }
+  .card{flex:1;max-width:1400px;background:#fff;border:1px solid var(--line);border-radius:12px;
+        box-shadow:0 10px 28px rgba(2,6,23,.06);display:flex;flex-direction:column;overflow:hidden}
   .header{padding:10px;border-bottom:1px solid var(--line);text-align:center}
-  .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,24px);text-align:center}
+  .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,22px)}
+  .subtitle{margin:4px 0 0 0;color:var(--muted);font-size:12.5px}
 
-  .table-wrap{
-    flex:1 1 auto;min-height:0;
-    overflow:auto;
-    -webkit-overflow-scrolling:touch;
+  .table-wrap{flex:1 1 auto;overflow:auto}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-body)}
+  thead th{position:sticky;top:0;z-index:30;background:#1e293b;color:#fff;font-weight:800;text-align:center;
+           padding:9px;border-bottom:2px solid #0b1220}
+  thead th:first-child{left:0;z-index:40;position:sticky;background:#1e293b}
+  tbody td,tbody th{padding:8px;border-bottom:1px solid var(--line);background:#fff;vertical-align:middle}
+  tbody th{background:#f8fafc}
+  .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pct{text-align:center;white-space:nowrap}
+  .rango{display:inline-block;padding:2px 6px;border-radius:999px;font-weight:800;font-size:11.5px}
+  .rango.alto{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+  .rango.medio{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+  .rango.bajo{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+
+  /* Niveles jerárquicos */
+  .h1{font-weight:800;font-size:14px}
+  .h2{font-weight:400;font-size:14px}
+
+  /* Botón expandir/contraer (solo primer nivel) */
+  .btn{border:0;background:transparent;cursor:pointer;display:flex;align-items:center;font:inherit;color:inherit}
+
+  /* === Flecha animada (solo primer nivel) === */
+  .chev{
+    --chev-color:#ea580c;
+    --chev-glow:rgba(234,88,12,.45);
+    width:1.3rem;height:1.3rem;position:relative;
+    display:inline-grid;place-items:center;color:var(--chev-color);
+    margin-right:.4rem;
+  }
+  .chev .arrow{
+    position:absolute;width:16px;height:16px;opacity:0;
+    filter:drop-shadow(0 5px 10px var(--chev-glow));
+    animation:chevDrip 1.8s ease-in-out infinite;
+  }
+  .chev .arrow:nth-child(2){animation-delay:.22s}
+  .chev .arrow:nth-child(3){animation-delay:.44s}
+  @keyframes chevDrip{
+    0%{transform:translateY(-8px) scale(.95);opacity:0}
+    20%{transform:translateY(-2px) scale(1);opacity:1}
+    60%{transform:translateY(6px) scale(1.04);opacity:.95}
+    100%{transform:translateY(12px) scale(1);opacity:0}
   }
 
-  table{
-    width:100%;
-    min-width:1060px;
-    border-collapse:separate;border-spacing:0;
-    table-layout:fixed;
-    font-size:var(--fs-body);
-  }
-
-  thead th{
-    position:sticky;top:0;z-index:5;
-    background:#e9eff6;color:#0b2532;font-weight:800;
-    text-align:center;padding:9px;
-    border-bottom:2px solid #cbd5e1;font-size:var(--fs-head);
-    white-space:normal;word-break:break-word;overflow-wrap:anywhere;
-  }
-  thead th:first-child{ text-align:center; } 
-  thead th.pad{ background:#e9eff6; border-bottom:2px solid #cbd5e1 }
-
-  tbody td,tbody th{
-    padding:8px 10px;border-bottom:1px solid var(--line);
-    background:#fff;vertical-align:middle;
-    word-break:break-word;white-space:normal;
-  }
-
-  tbody th.sticky, tbody td.sticky{
-    text-align:left; position:sticky; left:0; z-index:4; background:#f8fafc;
-    box-shadow:6px 0 8px -6px rgba(0,0,0,.18)
-  }
-
-  .num{ text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums }
-
-  .h1{font-weight:800;font-size:14px;line-height:1.4}
-  .h2{font-weight:400;font-size:14px;line-height:1.4}
-
-  .btn{
-    border:0;background:transparent;cursor:pointer;display:flex;align-items:center;
-    justify-content:flex-start;text-align:left;width:100%;font:inherit;color:inherit;
-    word-break:break-word;white-space:normal;line-height:1.4;
-  }
-
-  .chev{width:.9rem;height:.9rem;margin-right:.45rem;position:relative;flex:0 0 auto}
-  .arrow{position:absolute;top:0;left:0;width:.9rem;height:.9rem;stroke:#374151;fill:none;stroke-width:2;
-         stroke-linecap:round;stroke-linejoin:round;opacity:0;animation:drop 1.6s ease-in-out infinite}
-  .arrow:nth-child(2){animation-delay:.2s} .arrow:nth-child(3){animation-delay:.4s}
-  @keyframes drop{0%{transform:translateY(-3px);opacity:0}20%{transform:translateY(0);opacity:1}60%{transform:translateY(3px);opacity:.9}100%{transform:translateY(5px);opacity:0}}
-
-  td.pad, th.pad{ pointer-events:none; border-bottom:0; background:transparent }
-
-  .hint{padding:6px 10px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line)}
-
-  @media (max-width:1200px){
-    :root{--w-name:380px;--w-num:145px;--w-last:170px}
-  }
-  @media (max-width:980px){
-    :root{--w-name:340px;--w-num:138px;--w-last:165px}
-  }
-  @media (max-width:780px){
-    :root{--w-name:300px;--w-num:128px;--w-last:160px}
-  }
+  tfoot td{background:#f8fafc;font-weight:900;padding:10px;border-top:2px solid #94a3b8}
+  .hint{font-size:11.5px;color:var(--muted);text-align:center;padding:6px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <div class="header"><h2 class="title">Ejecución presupuestal por programa presupuestal</h2></div>
+    <div class="header">
+      <h2 class="title">Ejecución presupuestal por programa Presupuestal</h2>
+      <p class="subtitle">Niveles: <b>Programa Presupuestal</b> → <b>Oficina</b> · Totales PIA/PIM/Certificado/Compromiso/Devengado/Girado · Avance <b>Bajo / Medio / Alto</b></p>
+    </div>
 
     <div class="table-wrap">
       <table id="tbl">
-        <colgroup>
-          <col style="width:var(--w-name)">
-          <col style="width:var(--w-num)"><col style="width:var(--w-num)"><col style="width:var(--w-num)">
-          <col style="width:var(--w-num)"><col style="width:var(--w-num)">
-          <col style="width:var(--w-last)">
-          <col style="width:var(--w-pad)">
-        </colgroup>
         <thead>
           <tr>
-            <th>Programa / Oficina</th>
-            <th>Monto PIA</th>
-            <th>Monto PIM</th>
-            <th>Monto Certificado</th>
-            <th>Monto Comprometido Anual</th>
-            <th>Monto Comprometido</th>
-            <th>Monto Devengado</th>
-            <th class="pad"></th>
+            <th>Programa Presupuestal / Oficina</th>
+            <th>PIA</th><th>PIM</th><th>Certif.</th><th>Comp.Annual</th><th>Devengado</th><th>Girado</th>
+            <th>% Avance</th><th>Rango</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
       </table>
-      <div class="hint">Fuente: Ministerio de Economía y Finanzas (MEF) — Portal de Datos Abiertos · Capa 13</div>
+      <div class="hint">Fuente: MEF — MapServer/13 (OGEI · Vivienda) · Filtros: pliego = '037', ejecutora = '001', ano_eje = 2025</div>
     </div>
   </div>
 </div>
 
 <script>
 const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
-const WHERE ="sector_nombre = 'VIVIENDA CONSTRUCCION Y SANEAMIENTO' AND ano_eje = 2025";
 
+/* Filtros solicitados */
+const WHERE="pliego = '037' AND ejecutora = '001' AND ano_eje = 2025";
+
+/* Campos por nivel */
 const F={
-  programa:"programa_ppto_nombre",
-  oficina :"ejecutora_nombre",
-  pia:"monto_pia",
-  pim:"monto_pim",
-  cert:"monto_certificado",
-  compA:"monto_comprometido_anual",
-  comp:"monto_comprometido",
-  dev:"monto_devengado"
+  programa:"programa_ppto_nombre",   // Nivel 1
+  oficina:"oficina",                 // Nivel 2
+  pia:"monto_pia", pim:"monto_pim", cert:"monto_certificado",
+  comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado"
 };
 
-const NF=new Intl.NumberFormat('es-PE');
+const fmt=new Intl.NumberFormat('es-PE');
+const pct=(a,b)=>(!b||b<=0)?0:(a/b*100);
+const rango=p=>p<30?'bajo':(p<70?'medio':'alto');
+const rangoTxt=p=>p<30?'Bajo':(p<70?'Medio':'Alto');
 
+/* Consulta agrupada: Programa → Oficina */
 async function query(){
   const outStats=JSON.stringify([
     {statisticType:'sum',onStatisticField:F.pia,outStatisticFieldName:'pia'},
     {statisticType:'sum',onStatisticField:F.pim,outStatisticFieldName:'pim'},
     {statisticType:'sum',onStatisticField:F.cert,outStatisticFieldName:'cert'},
-    {statisticType:'sum',onStatisticField:F.compA,outStatisticFieldName:'compA'},
     {statisticType:'sum',onStatisticField:F.comp,outStatisticFieldName:'comp'},
-    {statisticType:'sum',onStatisticField:F.dev,outStatisticFieldName:'dev'}
+    {statisticType:'sum',onStatisticField:F.dev,outStatisticFieldName:'dev'},
+    {statisticType:'sum',onStatisticField:F.gir,outStatisticFieldName:'gir'}
   ]);
   const qs=new URLSearchParams({
     where:WHERE,
     groupByFieldsForStatistics:`${F.programa},${F.oficina}`,
     outFields:`${F.programa},${F.oficina}`,
-    outStatistics:outStats,orderByFields:`${F.programa} ASC,${F.oficina} ASC`,
-    returnGeometry:'false',f:'json'
+    outStatistics:outStats, returnGeometry:'false', f:'json'
   });
-  const res=await fetch(SERVICE+"?"+qs,{cache:'no-store'});
+  const res=await fetch(SERVICE+"?"+qs);
+  if(!res.ok) throw new Error("HTTP "+res.status);
   const j=await res.json();
-  if(j.error) throw new Error(j.error.message||'Error del servicio');
-  return (j.features||[]).map(f=>f.attributes);
+  if(!j.features) return [];
+  return j.features.map(f=>f.attributes);
 }
 
+/* Estructura: Map(programa -> Array de filas por oficina) + totales */
 function build(rows){
   const tree=new Map();
+  let total={pia:0,pim:0,cert:0,comp:0,dev:0,gir:0};
   for(const r of rows){
-    const prog=r[F.programa]??'(Sin programa)';
+    total.pia+=r.pia; total.pim+=r.pim; total.cert+=r.cert; total.comp+=r.comp; total.dev+=r.dev; total.gir+=r.gir;
+    const prog=r[F.programa] ?? "(Sin programa)";
     if(!tree.has(prog)) tree.set(prog,[]);
     tree.get(prog).push(r);
   }
-  for(const arr of tree.values()){
-    arr.sort((a,b)=>(a[F.oficina]??'').localeCompare(b[F.oficina]??'','es'));
+  return {tree,total};
+}
+
+/* Flecha animada (solo primer nivel) */
+function chevHTML(){ return `
+  <span class="chev" aria-hidden="true">
+    <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 4v12"></path><path d="M8 12l4 4 4-4"></path>
+    </svg>
+    <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 4v12"></path><path d="M8 12l4 4 4-4"></path>
+    </svg>
+    <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 4v12"></path><path d="M8 12l4 4 4-4"></path>
+    </svg>
+  </span>`; }
+
+/* Render */
+function render({tree,total}){
+  const TB=document.getElementById('tbody'), TF=document.getElementById('tfoot');
+  TB.innerHTML='';
+
+  for(const [prog, arr] of tree.entries()){
+    // Agregados por programa
+    const aggP={pia:0,pim:0,cert:0,comp:0,dev:0,gir:0};
+    arr.forEach(x=>{ aggP.pia+=x.pia; aggP.pim+=x.pim; aggP.cert+=x.cert; aggP.comp+=x.comp; aggP.dev+=x.dev; aggP.gir+=x.gir; });
+
+    const pId='p_'+btoa(prog);
+    TB.insertAdjacentHTML('beforeend',`
+      <tr>
+        <th class="h1">
+          <button class="btn" aria-expanded="false" aria-controls="${pId}">
+            ${chevHTML()} ${prog}
+          </button>
+        </th>
+        ${cells(aggP)}
+      </tr>`);
+
+    // Detalle por oficina (sin SVG ni botón)
+    arr.sort((a,b)=>b.pim-a.pim);
+    arr.forEach(x=>{
+      TB.insertAdjacentHTML('beforeend',`
+        <tr data-parent="${pId}" style="display:none">
+          <th class="h2" style="padding-left:28px">
+            ${x[F.oficina] ?? "(Sin oficina)"}
+          </th>
+          ${cells(x)}
+        </tr>`);
+    });
   }
-  return tree;
+
+  TF.innerHTML=`<tr><th class="h1">TOTAL</th>${cells(total)}</tr>`;
+  addToggle();
 }
 
 function cells(v){
+  const p=pct(v.dev,v.pim); const r=rango(p);
   return `
-    <td class="num">${NF.format(v.pia||0)}</td>
-    <td class="num">${NF.format(v.pim||0)}</td>
-    <td class="num">${NF.format(v.cert||0)}</td>
-    <td class="num">${NF.format(v.compA||0)}</td>
-    <td class="num">${NF.format(v.comp||0)}</td>
-    <td class="num">${NF.format(v.dev||0)}</td>
-    <td class="pad"></td>`;
+    <td class="num">${fmt.format(v.pia)}</td>
+    <td class="num">${fmt.format(v.pim)}</td>
+    <td class="num">${fmt.format(v.cert)}</td>
+    <td class="num">${fmt.format(v.comp)}</td>
+    <td class="num">${fmt.format(v.dev)}</td>
+    <td class="num">${fmt.format(v.gir)}</td>
+    <td class="pct">${isFinite(p)?p.toFixed(1)+'%':'—'}</td>
+    <td class="pct"><span class="rango ${r}">${rangoTxt(p)}</span></td>`;
 }
 
-function render(tree){
-  const TB=document.getElementById('tbody'); TB.innerHTML='';
-  for(const [programa, items] of tree.entries()){
-    const agg=items.reduce((a,x)=>({
-      pia:a.pia+(+x.pia||0),pim:a.pim+(+x.pim||0),cert:a.cert+(+x.cert||0),
-      compA:a.compA+(+x.compA||0),comp:a.comp+(+x.comp||0),
-      dev:a.dev+(+x.dev||0)
-    }),{pia:0,pim:0,cert:0,compA:0,comp:0,dev:0});
-
-    const id='p_'+btoa(programa).replace(/=+$/,'');
-    TB.insertAdjacentHTML('beforeend',`
-      <tr>
-        <th class="sticky h1">
-          <button class="btn" aria-expanded="false" aria-controls="${id}">
-            <span class="chev">
-              <svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-              <svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-              <svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-            </span>${programa}
-          </button>
-        </th>
-        ${cells(agg)}
-      </tr>`);
-
-    for(const x of items){
-      TB.insertAdjacentHTML('beforeend',`
-        <tr data-parent="${id}" style="display:none">
-          <td class="sticky h2" style="padding-left:24px;">${x[F.oficina]??'(Sin oficina)'}</td>
-          ${cells(x)}
-        </tr>`);
-    }
-  }
-
+function addToggle(){
   document.querySelectorAll('button[aria-controls]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const id=btn.getAttribute('aria-controls');
-      const open=btn.getAttribute('aria-expanded')==='true';
-      btn.setAttribute('aria-expanded',String(!open));
+      const exp=btn.getAttribute('aria-expanded')==='true';
+      btn.setAttribute('aria-expanded',String(!exp));
       document.querySelectorAll(`[data-parent="${id}"]`).forEach(tr=>{
-        tr.style.display=open?'none':'';
+        tr.style.display=exp?'none':'';
       });
     });
   });
 }
 
+/* Init */
 (async()=>{
   try{
-    const rows=await query();
-    render(build(rows));
+    const data=await query();
+    render(build(data));
   }catch(e){
     console.error(e);
-    document.getElementById('tbody').innerHTML =
-      `<tr><td colspan="8" style="text-align:center;color:#b91c1c;padding:24px">
-        Error al cargar datos: ${e?.message||'Fallo del servicio'}
-      </td></tr>`;
+    alert("Error consultando el servicio: "+(e?.message||e));
   }
 })();
 </script>
 </body>
 </html>
-
