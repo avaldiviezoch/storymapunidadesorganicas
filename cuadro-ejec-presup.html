@@ -7,19 +7,29 @@
 <style>
   *,*::before,*::after{box-sizing:border-box}
   :root{
-    --bg:#ffffff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
+    --bg:transparent; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
     --fs-body:13.5px;
   }
+
+  /* ===== Layout “flotante” (sin tarjeta, sin sombra, sin borde) ===== */
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial;overflow:hidden}
-  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:10px}
-  .card{flex:1;max-width:1400px;background:#fff;border:1px solid var(--line);border-radius:12px;
-        box-shadow:0 10px 28px rgba(2,6,23,.06);display:flex;flex-direction:column;overflow:hidden}
-  .header{padding:10px;border-bottom:1px solid var(--line);text-align:center}
+  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:0}
+  .card{
+    flex:1;max-width:1400px;
+    background:transparent;          /* sin fondo */
+    border:0;                         /* sin borde */
+    border-radius:0;                  /* sin radios */
+    box-shadow:none;                  /* sin sombra */
+    display:flex;flex-direction:column;overflow:hidden
+  }
+
+  .header{padding:10px 0 8px;border-bottom:0;text-align:center}
   .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,22px)}
   .subtitle{margin:4px 0 0 0;color:var(--muted);font-size:12.5px}
 
+  /* El “cuadro” es solo la tabla centrada */
   .table-wrap{flex:1 1 auto;overflow:auto}
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-body)}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-body);margin:0 auto}
   thead th{position:sticky;top:0;z-index:30;background:#1e293b;color:#fff;font-weight:800;text-align:center;
            padding:9px;border-bottom:2px solid #0b1220}
   thead th:first-child{left:0;z-index:40;position:sticky;background:#1e293b}
@@ -45,10 +55,8 @@
 
   /* Flecha animada (solo primer nivel) */
   .chev{
-    --chev-color:#ea580c;
-    --chev-glow:rgba(234,88,12,.45);
-    width:1.3rem;height:1.3rem;position:relative;
-    display:inline-grid;place-items:center;color:var(--chev-color);
+    --chev-color:#ea580c; --chev-glow:rgba(234,88,12,.45);
+    width:1.3rem;height:1.3rem;position:relative;display:inline-grid;place-items:center;color:var(--chev-color);
   }
   .chev .arrow{
     position:absolute;width:16px;height:16px;opacity:0;
