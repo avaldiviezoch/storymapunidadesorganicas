@@ -109,8 +109,7 @@ const F = {
   comp:"monto_comprometido_anual",
   dev:"monto_devengado",
   gir:"monto_girado",
-  ue: "sec_ejec",
-  ejecutora: "ejecutora_nombre"
+  oficina: "oficina" // <-- nuevo campo usado para la columna y el filtro
 };
 
 /* ================== HELPERS ================== */
@@ -144,7 +143,7 @@ async function getTotals(where){
   return { pia:+a.sum_pia||0, pim:+a.sum_pim||0, cert:+a.sum_cert||0, comp:+a.sum_comp||0, dev:+a.sum_dev||0, gir:+a.sum_gir||0 };
 }
 
-async function getAggByEjecutora(where){
+async function getAggByOficina(where){
   const outStats = JSON.stringify([
     { statisticType:"sum", onStatisticField:F.pim, outStatisticFieldName:"sum_pim" },
     { statisticType:"sum", onStatisticField:F.pia, outStatisticFieldName:"sum_pia" },
@@ -155,8 +154,8 @@ async function getAggByEjecutora(where){
   ]);
   const data = await restQuery({
     where,
-    groupByFieldsForStatistics: `${F.ejecutora},${F.ue}`,
-    outFields: `${F.ejecutora},${F.ue}`,
+    groupByFieldsForStatistics: F.oficina,
+    outFields: F.oficina,
     outStatistics: outStats,
     orderByFields: "sum_pim DESC",
     returnGeometry:"false",
@@ -164,9 +163,10 @@ async function getAggByEjecutora(where){
   });
   return data.features?.map(f=>{
     const a=f.attributes||{};
+    const nombre = a[F.oficina] ?? "(Sin oficina)";
     return {
-      key: a[F.ue] ?? "(Sin UE)",
-      name: a[F.ejecutora] ?? "(Sin nombre)",
+      key: nombre,          // usamos el nombre de la oficina como clave
+      name: nombre,         // y también como texto visible en la tabla
       pia: +a.sum_pia||0, pim:+a.sum_pim||0, dev:+a.sum_dev||0,
       cert:+a.sum_cert||0, comp:+a.sum_comp||0, gir:+a.sum_gir||0
     };
@@ -185,7 +185,7 @@ function setGauge(pct){
       type:'gauge',
       min:0, max:100,
       startAngle: 220, endAngle: -40,
-      splitNumber: 5,                    // 0,20,40,60,80,100
+      splitNumber: 5,
       center: ['50%','62%'], radius:'92%',
       pointer:{ show:true, width:4, length:'58%' },
       progress:{ show:true, width:12, roundCap:true },
@@ -224,13 +224,12 @@ function renderTable(rows, totalPIM){
     tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td>${fmtM(r.pim)}</td><td>${fmtPct(pct)}</td>`;
     tr.addEventListener('click', async ()=>{
       if(selectedKey === r.key){
-        // Toggle: deseleccionar → volver a totales
         selectedKey = null;
         renderKPIs(window.__totalsBase);
         highlightSelection(null);
       }else{
         selectedKey = r.key;
-        const whereSel = `${WHERE_BASE} AND ${F.ue}='${String(r.key).replace(/'/g,"''")}'`;
+        const whereSel = `${WHERE_BASE} AND ${F.oficina}='${String(r.key).replace(/'/g,"''")}'`;
         const t = await getTotals(whereSel);
         renderKPIs(t);
         highlightSelection(r.key);
@@ -249,7 +248,7 @@ function highlightSelection(key){
 /* ================== INIT ================== */
 (async function init(){
   try{
-    const [totals, rows] = await Promise.all([ getTotals(WHERE_BASE), getAggByEjecutora(WHERE_BASE) ]);
+    const [totals, rows] = await Promise.all([ getTotals(WHERE_BASE), getAggByOficina(WHERE_BASE) ]);
     const totalPIM = totals.pim || rows.reduce((s,r)=>s+r.pim,0);
     window.__totalsBase = totals; // para reset rápido
     renderKPIs(totals);
@@ -269,4 +268,3 @@ function highlightSelection(key){
 </script>
 </body>
 </html>
-
