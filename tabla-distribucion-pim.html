@@ -100,7 +100,7 @@
 <script>
 /* ================== CONFIG ================== */
 const SERVICE = "https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
-const WHERE_BASE = "sector_nombre = 'VIVIENDA CONSTRUCCION Y SANEAMIENTO' AND ano_eje = 2025";
+const WHERE_BASE = "pliego = '037' AND ejecutora = '001' AND ano_eje = 2025";
 
 const F = {
   pia: "monto_pia",
@@ -109,7 +109,7 @@ const F = {
   comp:"monto_comprometido_anual",
   dev:"monto_devengado",
   gir:"monto_girado",
-  oficina: "oficina" // <-- nuevo campo usado para la columna y el filtro
+  oficina: "oficina"
 };
 
 /* ================== HELPERS ================== */
@@ -165,8 +165,8 @@ async function getAggByOficina(where){
     const a=f.attributes||{};
     const nombre = a[F.oficina] ?? "(Sin oficina)";
     return {
-      key: nombre,          // usamos el nombre de la oficina como clave
-      name: nombre,         // y también como texto visible en la tabla
+      key: nombre,
+      name: nombre,
       pia: +a.sum_pia||0, pim:+a.sum_pim||0, dev:+a.sum_dev||0,
       cert:+a.sum_cert||0, comp:+a.sum_comp||0, gir:+a.sum_gir||0
     };
