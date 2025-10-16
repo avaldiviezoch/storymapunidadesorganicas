@@ -6,8 +6,21 @@
 <title>Distribución del PIM por oficina</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <style>
-  :root{--ink:#0b2532;--muted:#64748b;--card:#fff;--bg:#eef5f3;--line:#e6ecea;--panel:#f7fbfa;--sel:#e8f5e9}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+  :root{
+    --ink:#0b2532;
+    --muted:#64748b;
+    --card:#fff;
+    --bg:#ffffff; /* ← FONDO CAMBIADO A BLANCO */
+    --line:#e6ecea;
+    --panel:#f7fbfa;
+    --sel:#e8f5e9;
+  }
+  html,body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial
+  }
   .wrap{max-width:1220px;margin:auto;padding:16px;display:grid;gap:16px}
 
   .page-title{ text-align:center;font-weight:800;margin:0 0 6px 0;font-size:clamp(18px,2.6vw,26px) }
@@ -15,7 +28,7 @@
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
 
-  /* KPIs (se mantienen igual) */
+  /* KPIs */
   .kpis{grid-column:span 8;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
   .kpi{background:#0b3b38;color:#fff;border-radius:12px;padding:12px;display:grid;place-items:center;text-align:center}
   .kpi h4{margin:0 0 4px 0;font-size:13px;opacity:.95}
@@ -29,7 +42,7 @@
   .icon-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;font-size:18px;line-height:1}
   .icon-btn:hover{background:#fafafa}
 
-  /* Tabla (formato de montos NUEVO solo aquí) */
+  /* Tabla */
   .table-card{grid-column:span 12}
   table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
   thead th{background:var(--panel);text-align:center;font-size:13px;color:var(--ink);font-weight:700;padding:10px;border-bottom:1px solid var(--line)}
@@ -45,7 +58,7 @@
   <h1 class="page-title">Distribución del PIM por oficina</h1>
 
   <div class="grid">
-    <!-- KPIs (igual que antes) -->
+    <!-- KPIs -->
     <div class="kpis">
       <div class="kpi"><h4>PIA</h4><div id="kpiPIA" class="val">—</div></div>
       <div class="kpi"><h4>PIM</h4><div id="kpiPIM" class="val">—</div></div>
@@ -85,7 +98,6 @@
 </div>
 
 <script>
-/* ================== CONFIG ================== */
 const SERVICE = "https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
 const WHERE_BASE = "pliego = '037' AND ejecutora = '001' AND ano_eje = 2025";
 
@@ -99,18 +111,11 @@ const F = {
   oficina: "oficina"
 };
 
-/* ===== Helpers: formato ORIGINAL (para KPIs) ===== */
 const toM = v => (v||0)/1e6;
 const fmtM = v => `${toM(v).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})} mill.`;
 const fmtPct = v => (v==null||isNaN(v)) ? "—" : `${v.toFixed(1)}%`;
 const avance = (dev,pim)=> (!pim||pim<=0)?0:(dev/pim*100);
 
-/* ===== Helper NUEVO: SOLO para la tabla =====
-   - < 1,000 -> número con 2 decimales
-   - 1,000–<1,000,000 -> "X mil" (1 mil, 2 mil, …)
-   - 1,000,000–<1,000,000,000 -> "X.xx millones" (o "1 millón")
-   - ≥ 1,000,000,000 -> "X.xx miles de millones"
-*/
 function fmtMontoTabla(v){
   if (v == null || isNaN(v)) return "—";
   const abs = Math.abs(v);
@@ -132,7 +137,6 @@ function fmtMontoTabla(v){
   return sign + b.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " miles de millones";
 }
 
-/* ================== REST QUERIES ================== */
 async function restQuery(params){
   const qs = new URLSearchParams(params);
   const url = SERVICE + "?" + qs.toString();
@@ -187,10 +191,8 @@ async function getAggByOficina(where){
   }) || [];
 }
 
-/* ================== UI ================== */
 let selectedKey = null;
 
-// Gauge
 const gauge = echarts.init(document.getElementById('gauge'));
 function setGauge(pct){
   const v = Math.max(0, Math.min(100, pct||0));
@@ -213,7 +215,6 @@ function setGauge(pct){
 }
 
 function renderKPIs(t){
-  // KPI: mantener "mill." como antes
   document.getElementById('kpiPIA').textContent  = fmtM(t.pia);
   document.getElementById('kpiPIM').textContent  = fmtM(t.pim);
   document.getElementById('kpiCERT').textContent = fmtM(t.cert);
@@ -228,7 +229,6 @@ function renderTable(rows, totalPIM){
   rows.forEach((r,i)=>{
     const tr=document.createElement('tr'); tr.dataset.key = r.key;
     const pct = !totalPIM ? 0 : r.pim/totalPIM*100;
-    // SOLO aquí usamos el nuevo formateo:
     tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td>${fmtMontoTabla(r.pim)}</td><td>${fmtPct(pct)}</td>`;
     tr.addEventListener('click', async ()=>{
       if(selectedKey === r.key){
@@ -253,7 +253,6 @@ function highlightSelection(key){
   });
 }
 
-/* ================== INIT ================== */
 (async function init(){
   try{
     const [totals, rows] = await Promise.all([ getTotals(WHERE_BASE), getAggByOficina(WHERE_BASE) ]);
