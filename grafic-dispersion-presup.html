@@ -9,7 +9,6 @@
     html,body{height:100%;margin:0;background:#fff;font-family:system-ui,Arial}
     #wrap{position:relative;height:100vh;width:100vw}
     #chart{height:100%;width:100%}
-
     /* Leyenda reducida */
     .legend-inline{
       position:absolute;
@@ -30,7 +29,6 @@
     .legend-item:hover{background:#f8fafc}
     .legend-item.off{opacity:.45;filter:grayscale(.25)}
     .muted{color:#6b7280}
-
     @media (max-width: 720px){
       .legend-inline{top:56px}
     }
@@ -39,7 +37,6 @@
 <body>
 <div id="wrap">
   <div id="chart"></div>
-
   <!-- Leyenda reducida sin "Sin dato" -->
   <div class="legend-inline" id="legend">
     <span class="lg-title">Leyenda:</span>
@@ -54,7 +51,6 @@
     </div>
   </div>
 </div>
-
 <script>
 const DOT_BORDER = { color:'#0f172a', width:0.6, type:'solid', opacity:0.9 };
 const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
@@ -84,8 +80,10 @@ async function fetchAggOficinas(){
     const pim=a.sum_pim||0,dev=a.sum_dev||0;
     const x=toM(pim),y=toM(dev),avance=(!pim||pim<=0)?NaN:(dev/pim*100);
     const cat=avanceCategory(avance);
-    return{name,pim,dev,xM:x,yM:y,avance,cat};
-  }).filter(r=>Number.isFinite(r.xM)&&Number.isFinite(r.yM));
+    const xLog=Number.isFinite(x)&&x>0?Math.log10(x):NaN;
+    const yLog=Number.isFinite(y)&&y>0?Math.log10(y):NaN;
+    return{name,pim,dev,xM:x,yM:y,xLog,yLog,avance,cat};
+  }).filter(r=>Number.isFinite(r.xLog)&&Number.isFinite(r.yLog));
 }
 const legendState={bajo:true,medio:true,alto:true};
 (async function run(){
@@ -94,7 +92,7 @@ const legendState={bajo:true,medio:true,alto:true};
     chart.showLoading({text:'Cargando datos…'});
     const rows=await fetchAggOficinas();
     if(!rows.length)throw new Error('No se encontraron datos por oficina.');
-    const allX=rows.map(r=>r.xM),allY=rows.map(r=>r.yM);
+    const allX=rows.map(r=>r.xLog),allY=rows.map(r=>r.yLog);
     const sizeFn=makeSizeFn(allX,10,70);
     const xQ05=quantile(allX,0.05),xQ95=quantile(allX,0.95);
     const yQ05=quantile(allY,0.05),yQ95=quantile(allY,0.95);
@@ -106,7 +104,7 @@ const legendState={bajo:true,medio:true,alto:true};
     const yInitMax=Math.max(yQ95+yPad,yMaxAll);
     function toPoint(r){
       return{
-        value:[r.xM,r.yM,r.name,r.avance],
+        value:[r.xLog,r.yLog,r.name,r.avance],
         itemStyle:{color:COLOR[r.cat],opacity:DOT_BORDER.opacity,borderColor:DOT_BORDER.color,borderWidth:DOT_BORDER.width,borderType:DOT_BORDER.type},
         emphasis:{itemStyle:{borderColor:DOT_BORDER.color,borderWidth:Math.max(DOT_BORDER.width+0.5,DOT_BORDER.width)},scale:1.08,focus:'self'}
       };
@@ -122,19 +120,20 @@ const legendState={bajo:true,medio:true,alto:true};
     const option={
       title:[
         {text:'2025',right:140,bottom:48,textAlign:'right',textStyle:{fontSize:32,fontWeight:700,color:'#e5e7eb'}},
-        {text:'PIM vs Devengado por Oficina',left:'center',top:8,textStyle:{fontWeight:'700',fontSize:16}}
+        {text:'Log(PIM) vs Log(Devengado) por Oficina',left:'center',top:8,textStyle:{fontWeight:'700',fontSize:16}}
       ],
       tooltip:{
         padding:6,borderWidth:1,
         formatter:obj=>{
-          const[xM,yM,name,avc]=obj.value;
+          const[xLog,yLog,name,avc]=obj.value;
+          const xM=Math.pow(10,xLog),yM=Math.pow(10,yLog);
           const aTxt=Number.isFinite(avc)?pf1.format(avc)+' %':'—';
           return `<b>Oficina:</b> ${name}<br><b>PIM (X):</b> S/ ${pf2.format(xM)} mill.<br><b>Devengado (Y):</b> S/ ${pf2.format(yM)} mill.<br><b>Avance (Color):</b> ${aTxt}`;
         }
       },
       grid:{top:86,left:52,right:26,bottom:60,containLabel:true},
-      xAxis:{type:'value',name:'PIM (millones S/)',min:xInitMin,max:xInitMax,nameGap:25,nameLocation:'middle',nameTextStyle:{fontSize:14},splitLine:{show:true},scale:true,axisLabel:{formatter:v=>pf1.format(v)}},
-      yAxis:{type:'value',name:'Devengado (millones S/)',min:yInitMin,max:yInitMax,nameTextStyle:{fontSize:14},splitLine:{show:true},scale:true,axisLabel:{formatter:v=>pf1.format(v)}},
+      xAxis:{type:'value',name:'Log(PIM, millones S/)',min:xInitMin,max:xInitMax,nameGap:25,nameLocation:'middle',nameTextStyle:{fontSize:14},splitLine:{show:true},scale:true,axisLabel:{formatter:v=>pf1.format(v)}},
+      yAxis:{type:'value',name:'Log(Devengado, millones S/)',min:yInitMin,max:yInitMax,nameTextStyle:{fontSize:14},splitLine:{show:true},scale:true,axisLabel:{formatter:v=>pf1.format(v)}},
       dataZoom:[
         {type:'slider',xAxisIndex:0,filterMode:'none',bottom:12,height:28},
         {type:'inside',xAxisIndex:0,filterMode:'none'},
