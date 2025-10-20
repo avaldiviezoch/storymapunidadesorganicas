@@ -50,6 +50,15 @@
   tbody tr:hover{background:#fafafa;cursor:pointer}
   tbody tr.selected{background:var(--sel)}
   tbody td:nth-child(1), tbody td:nth-child(3), tbody td:nth-child(4){text-align:center}
+
+  /* Fuente/Fecha */
+  .source{
+    margin:4px 2px 2px 2px;
+    text-align:center;
+    color:#334155;
+    font-size:12.5px;
+  }
+  .source b{ color:#0369a1; }
 </style>
 </head>
 <body>
@@ -95,6 +104,12 @@
       </div>
     </div>
   </div>
+
+  <!-- === Fuente + Fecha (misma para todos los aplicativos) === -->
+  <p class="source">
+    <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
+    <em id="lastUpdate">Actualizado al —</em>
+  </p>
 </div>
 
 <script>
@@ -108,7 +123,8 @@ const F = {
   comp:"monto_comprometido_anual",
   dev:"monto_devengado",
   gir:"monto_girado",
-  oficina: "oficina"
+  oficina: "oficina",
+  fecha: "fecha_proceso" // ← campo de fecha
 };
 
 const toM = v => (v||0)/1e6;
@@ -191,6 +207,22 @@ async function getAggByOficina(where){
   }) || [];
 }
 
+/* === Fecha de actualización (misma lógica para todos los apps) === */
+async function getMaxFecha(where){
+  const outStats = JSON.stringify([
+    { statisticType:"max", onStatisticField:F.fecha, outStatisticFieldName:"max_fp" }
+  ]);
+  const data = await restQuery({ where, outStatistics: outStats, returnGeometry:"false", f:"json" });
+  const a = data.features?.[0]?.attributes || {};
+  const ts = (a.max_fp!=null) ? Number(a.max_fp) : null;
+  return Number.isFinite(ts) ? ts : null;
+}
+function formatEsDate(ts){
+  if(!Number.isFinite(ts)) return "—";
+  const d = new Date(ts);
+  return new Intl.DateTimeFormat("es-PE", { day:"2-digit", month:"long", year:"numeric" }).format(d);
+}
+
 let selectedKey = null;
 
 const gauge = echarts.init(document.getElementById('gauge'));
@@ -255,11 +287,19 @@ function highlightSelection(key){
 
 (async function init(){
   try{
-    const [totals, rows] = await Promise.all([ getTotals(WHERE_BASE), getAggByOficina(WHERE_BASE) ]);
+    const [totals, rows, maxTs] = await Promise.all([
+      getTotals(WHERE_BASE),
+      getAggByOficina(WHERE_BASE),
+      getMaxFecha(WHERE_BASE) // ← max(fecha_proceso) para mostrar “Actualizado al …”
+    ]);
     const totalPIM = totals.pim || rows.reduce((s,r)=>s+r.pim,0);
     window.__totalsBase = totals;
     renderKPIs(totals);
     renderTable(rows, totalPIM);
+
+    // Setear fecha en el pie de página
+    const last = document.getElementById('lastUpdate');
+    last.textContent = "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
 
     document.getElementById('btnReset').addEventListener('click', ()=>{
       selectedKey = null;
