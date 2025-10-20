@@ -42,38 +42,25 @@
   .btn{
     border:0;background:transparent;cursor:pointer;font:inherit;color:inherit;
     display:grid;grid-template-columns: 1.3rem 1fr;align-items:center;column-gap:.4rem;
-    text-align:left; /* asegura alineación del contenido textual */
+    text-align:left;
   }
 
-  /* === Flechas animadas según tu especificación === */
+  /* Flechas animadas */
   .chev{
-    --chev-color:#ea580c;                 /* color por defecto (nivel 1) */
-    --chev-glow:rgba(234,88,12,.45);
-    width:1.3rem;height:1.3rem;position:relative;
-    display:inline-grid;place-items:center;color:var(--chev-color);
-    /* sin margin-right: lo maneja el grid con column-gap */
+    --chev-color:#ea580c; --chev-glow:rgba(234,88,12,.45);
+    width:1.3rem;height:1.3rem;position:relative;display:inline-grid;place-items:center;color:var(--chev-color);
   }
-  .chev .arrow{
-    position:absolute;width:16px;height:16px;opacity:0;
-    filter:drop-shadow(0 5px 10px var(--chev-glow));
-    animation:chevDrip 1.8s ease-in-out infinite;
-  }
+  .chev .arrow{position:absolute;width:16px;height:16px;opacity:0;filter:drop-shadow(0 5px 10px var(--chev-glow));animation:chevDrip 1.8s ease-in-out infinite}
   .chev .arrow:nth-child(2){animation-delay:.22s}
   .chev .arrow:nth-child(3){animation-delay:.44s}
-  @keyframes chevDrip{
-    0%{transform:translateY(-8px) scale(.95);opacity:0}
-    20%{transform:translateY(-2px) scale(1);opacity:1}
-    60%{transform:translateY(6px) scale(1.04);opacity:.95}
-    100%{transform:translateY(12px) scale(1);opacity:0}
-  }
-  /* Variante de color para "segundo nivel" */
-  .chev.segundo-nivel{
-    --chev-color:#0ea5e9;                 /* celeste */
-    --chev-glow:rgba(14,165,233,.45);
-  }
+  @keyframes chevDrip{0%{transform:translateY(-8px) scale(.95);opacity:0}20%{transform:translateY(-2px) scale(1);opacity:1}60%{transform:translateY(6px) scale(1.04);opacity:.95}100%{transform:translateY(12px) scale(1);opacity:0}}
+  .chev.segundo-nivel{--chev-color:#0ea5e9; --chev-glow:rgba(14,165,233,.45)}
 
   tfoot td{background:#f8fafc;font-weight:900;padding:10px;border-top:2px solid #94a3b8}
-  .hint{font-size:11.5px;color:var(--muted);text-align:center;padding:6px 0}
+
+  /* Fuente/Fecha unificada */
+  .source{padding:8px 10px;border-top:1px solid var(--line);text-align:center;color:#334155;font-size:12.5px}
+  .source b{color:#0369a1}
 </style>
 </head>
 <body>
@@ -96,30 +83,43 @@
         <tbody id="tbody"></tbody>
         <tfoot id="tfoot"></tfoot>
       </table>
-      <div class="hint">Fuente: MEF</div>
     </div>
+
+    <!-- === Franja unificada de Fuente + Fecha === -->
+    <p class="source">
+      <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
+      <em id="lastUpdate">Actualizado al —</em>
+    </p>
   </div>
 </div>
 
 <script>
 const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
-
-/* === Filtros solicitados (mismos que el otro tablero) === */
 const WHERE="pliego = '037' AND ejecutora = '001' AND ano_eje = 2025";
 
-/* === Campos: primer nivel usa OFICINA === */
 const F={
   oficina:"oficina",
   fuente:"fuente_financiamiento_nombre",
   espec:"especifica_det_nombre",
   pia:"monto_pia", pim:"monto_pim", cert:"monto_certificado",
-  comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado"
+  comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado",
+  fecha:"fecha_proceso" // ← campo de fecha (común a todos los apps)
 };
 
 const fmt=new Intl.NumberFormat('es-PE');
 const pct=(a,b)=>(!b||b<=0)?0:(a/b*100);
 const rango=p=>p<30?'bajo':(p<70?'medio':'alto');
 const rangoTxt=p=>p<30?'Bajo':(p<70?'Medio':'Alto');
+
+async function rest(params){
+  const qs=new URLSearchParams(params);
+  const url=SERVICE+"?"+qs.toString();
+  const res=await fetch(url,{cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j=await res.json();
+  if(j.error) throw new Error(j.error.message || "Error del servicio");
+  return j;
+}
 
 async function query(){
   const outStats=JSON.stringify([
@@ -130,14 +130,21 @@ async function query(){
     {statisticType:'sum',onStatisticField:F.dev,outStatisticFieldName:'dev'},
     {statisticType:'sum',onStatisticField:F.gir,outStatisticFieldName:'gir'}
   ]);
-  const qs=new URLSearchParams({
+  const j=await rest({
     where:WHERE,
     groupByFieldsForStatistics:`${F.oficina},${F.fuente},${F.espec}`,
     outFields:`${F.oficina},${F.fuente},${F.espec}`,
     outStatistics:outStats, returnGeometry:'false', f:'json'
   });
-  const res=await fetch(SERVICE+"?"+qs); const j=await res.json();
   return (j.features||[]).map(f=>f.attributes);
+}
+
+async function getMaxFecha(){
+  const outStats=JSON.stringify([{statisticType:'max', onStatisticField:F.fecha, outStatisticFieldName:'max_fp'}]);
+  const j=await rest({ where:WHERE, outStatistics:outStats, returnGeometry:'false', f:'json' });
+  const a=j.features?.[0]?.attributes||{};
+  const ts=(a.max_fp!=null)?Number(a.max_fp):null;
+  return Number.isFinite(ts)?ts:null;
 }
 
 function build(rows){
@@ -151,6 +158,19 @@ function build(rows){
     sub.get(r[F.fuente]).push(r);
   }
   return {tree,total};
+}
+
+function cells(v){
+  const p=pct(v.dev,v.pim); const r=rango(p);
+  return `
+    <td class="num">${fmt.format(v.pia)}</td>
+    <td class="num">${fmt.format(v.pim)}</td>
+    <td class="num">${fmt.format(v.cert)}</td>
+    <td class="num">${fmt.format(v.comp)}</td>
+    <td class="num">${fmt.format(v.dev)}</td>
+    <td class="num">${fmt.format(v.gir)}</td>
+    <td class="pct">${isFinite(p)?p.toFixed(1)+'%':'—'}</td>
+    <td class="pct"><span class="rango ${r}">${rangoTxt(p)}</span></td>`;
 }
 
 /* Flecha animada (primer nivel, naranja) */
@@ -183,6 +203,19 @@ function chevHTML2(){
         <path d="M12 4v12"></path><path d="M8 12l4 4 4-4"></path>
       </svg>
     </span>`;
+}
+
+function addToggle(){
+  document.querySelectorAll('button[aria-controls]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.getAttribute('aria-controls');
+      const exp=btn.getAttribute('aria-expanded')==='true';
+      btn.setAttribute('aria-expanded',String(!exp));
+      document.querySelectorAll(`[data-parent="${id}"]`).forEach(tr=>{
+        tr.style.display=exp?'none':'';
+      });
+    });
+  });
 }
 
 function render({tree,total}){
@@ -230,34 +263,20 @@ function render({tree,total}){
   addToggle();
 }
 
-function cells(v){
-  const p=pct(v.dev,v.pim); const r=rango(p);
-  return `
-    <td class="num">${fmt.format(v.pia)}</td>
-    <td class="num">${fmt.format(v.pim)}</td>
-    <td class="num">${fmt.format(v.cert)}</td>
-    <td class="num">${fmt.format(v.comp)}</td>
-    <td class="num">${fmt.format(v.dev)}</td>
-    <td class="num">${fmt.format(v.gir)}</td>
-    <td class="pct">${isFinite(p)?p.toFixed(1)+'%':'—'}</td>
-    <td class="pct"><span class="rango ${r}">${rangoTxt(p)}</span></td>`;
-}
-
-function addToggle(){
-  document.querySelectorAll('button[aria-controls]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const id=btn.getAttribute('aria-controls');
-      const exp=btn.getAttribute('aria-expanded')==='true';
-      btn.setAttribute('aria-expanded',String(!exp));
-      document.querySelectorAll(`[data-parent="${id}"]`).forEach(tr=>{
-        tr.style.display=exp?'none':'';
-      });
-    });
-  });
+function formatEsDate(ts){
+  if(!Number.isFinite(ts)) return "—";
+  return new Intl.DateTimeFormat("es-PE",{day:"2-digit",month:"long",year:"numeric"}).format(new Date(ts));
 }
 
 (async()=>{
-  const data=await query(); render(build(data));
+  try{
+    const [rows, maxTs]=await Promise.all([ query(), getMaxFecha() ]);
+    render(build(rows));
+    document.getElementById('lastUpdate').textContent = "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
+  }catch(err){
+    console.error(err);
+    document.getElementById('lastUpdate').textContent = "Actualizado al —";
+  }
 })();
 </script>
 </body>
