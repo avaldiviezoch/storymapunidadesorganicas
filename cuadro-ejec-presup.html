@@ -16,10 +16,7 @@
   .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:0}
   .card{
     flex:1;max-width:1400px;
-    background:transparent;          /* sin fondo */
-    border:0;                         /* sin borde */
-    border-radius:0;                  /* sin radios */
-    box-shadow:none;                  /* sin sombra */
+    background:transparent; border:0; border-radius:0; box-shadow:none;
     display:flex;flex-direction:column;overflow:hidden
   }
 
@@ -73,7 +70,12 @@
   }
 
   tfoot td{background:#f8fafc;font-weight:900;padding:10px;border-top:2px solid #94a3b8}
-  .hint{font-size:11.5px;color:var(--muted);text-align:center;padding:6px 0}
+
+  /* Franja unificada Fuente/Fecha */
+  .source{
+    padding:8px 10px; text-align:center; color:#334155; font-size:12.5px
+  }
+  .source b{ color:#0369a1 }
 </style>
 </head>
 <body>
@@ -96,8 +98,13 @@
         <tbody id="tbody"></tbody>
         <tfoot id="tfoot"></tfoot>
       </table>
-      <div class="hint">Fuente: MEF</div>
     </div>
+
+    <!-- Franja unificada -->
+    <p class="source">
+      <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
+      <em id="lastUpdate">Actualizado al —</em>
+    </p>
   </div>
 </div>
 
@@ -112,7 +119,8 @@ const F={
   programa:"programa_ppto_nombre",   // Nivel 1
   oficina:"oficina",                 // Nivel 2
   pia:"monto_pia", pim:"monto_pim", cert:"monto_certificado",
-  comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado"
+  comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado",
+  fecha:"fecha_proceso"              // ← campo de fecha unificado
 };
 
 const fmt=new Intl.NumberFormat('es-PE');
@@ -136,11 +144,27 @@ async function query(){
     outFields:`${F.programa},${F.oficina}`,
     outStatistics:outStats, returnGeometry:'false', f:'json'
   });
-  const res=await fetch(SERVICE+"?"+qs);
+  const res=await fetch(SERVICE+"?"+qs, {cache:"no-store"});
   if(!res.ok) throw new Error("HTTP "+res.status);
   const j=await res.json();
   if(!j.features) return [];
   return j.features.map(f=>f.attributes);
+}
+
+/* Fecha de actualización (misma lógica que los otros apps) */
+async function getMaxFecha(){
+  const outStats=JSON.stringify([{statisticType:'max', onStatisticField:F.fecha, outStatisticFieldName:'max_fp'}]);
+  const qs=new URLSearchParams({ where:WHERE, outStatistics:outStats, returnGeometry:'false', f:'json' });
+  const res=await fetch(SERVICE+"?"+qs.toString(), {cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j=await res.json();
+  const a=j.features?.[0]?.attributes||{};
+  const ts=(a.max_fp!=null)?Number(a.max_fp):null;
+  return Number.isFinite(ts)?ts:null;
+}
+function formatEsDate(ts){
+  if(!Number.isFinite(ts)) return "—";
+  return new Intl.DateTimeFormat("es-PE",{day:"2-digit",month:"long",year:"numeric"}).format(new Date(ts));
 }
 
 /* Estructura: Map(programa -> Array de filas por oficina) + totales */
@@ -191,7 +215,7 @@ function render({tree,total}){
         ${cells(aggP)}
       </tr>`);
 
-    // Detalle por oficina (sin SVG ni botón)
+    // Detalle por oficina
     arr.sort((a,b)=>b.pim-a.pim);
     arr.forEach(x=>{
       TB.insertAdjacentHTML('beforeend',`
@@ -237,11 +261,12 @@ function addToggle(){
 /* Init */
 (async()=>{
   try{
-    const data=await query();
-    render(build(data));
+    const [rows, maxTs] = await Promise.all([ query(), getMaxFecha() ]);
+    render(build(rows));
+    document.getElementById('lastUpdate').textContent = "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
   }catch(e){
     console.error(e);
-    alert("Error consultando el servicio: "+(e?.message||e));
+    document.getElementById('lastUpdate').textContent = "Actualizado al —";
   }
 })();
 </script>
