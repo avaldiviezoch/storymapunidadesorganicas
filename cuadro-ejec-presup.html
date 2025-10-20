@@ -35,7 +35,7 @@
   .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
   .pct{text-align:center;white-space:nowrap}
 
-  /* === Rango con colores más vivos y alto contraste (idéntico al otro) === */
+  /* === Rango con colores más vivos y alto contraste === */
   .rango{
     display:inline-block;
     padding:3px 9px;
@@ -49,24 +49,15 @@
     box-shadow:0 4px 14px rgba(0,0,0,.06);
   }
   .rango.alto{
-    color:#065f46;
-    background:#bbf7d0;
-    border-color:#10b981;
-    text-shadow:0 0 0 rgba(0,0,0,0);
+    color:#065f46; background:#bbf7d0; border-color:#10b981;
     box-shadow:0 0 0 2px rgba(16,185,129,.18) inset, 0 4px 14px rgba(16,185,129,.16);
   }
   .rango.medio{
-    color:#7c2d12;
-    background:#fde68a;
-    border-color:#f59e0b;
-    text-shadow:0 0 0 rgba(0,0,0,0);
+    color:#7c2d12; background:#fde68a; border-color:#f59e0b;
     box-shadow:0 0 0 2px rgba(245,158,11,.22) inset, 0 4px 14px rgba(245,158,11,.16);
   }
   .rango.bajo{
-    color:#7f1d1d;
-    background:#fecaca;
-    border-color:#ef4444;
-    text-shadow:0 0 0 rgba(0,0,0,0);
+    color:#7f1d1d; background:#fecaca; border-color:#ef4444;
     box-shadow:0 0 0 2px rgba(239,68,68,.22) inset, 0 4px 14px rgba(239,68,68,.16);
   }
 
@@ -102,7 +93,7 @@
 
   tfoot td{background:#f8fafc;font-weight:900;padding:10px;border-top:2px solid #94a3b8}
 
-  /* Franja unificada Fuente/Fecha (misma que el otro) */
+  /* Franja unificada Fuente/Fecha */
   .source{
     padding:8px 10px; text-align:center; color:#334155; font-size:12.5px
   }
@@ -141,17 +132,39 @@
 
 <script>
 const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
-
-/* Filtros solicitados */
 const WHERE="pliego = '037' AND ejecutora = '001' AND ano_eje = 2025";
+
+/* === ORDEN PERSONALIZADO PARA LA PRIMERA COLUMNA (PROGRAMAS) ===
+   Cambia el orden aquí si lo necesitas. */
+const ORDER_PROGRAMS = [
+  "ACCESO DE LAS FAMILIAS A VIVIENDA Y ENTORNO URBANO ADECUADO",       // 1
+  "REDUCCION DE VULNERABILIDAD Y ATENCION DE EMERGENCIAS POR DESASTRES",// 2
+  "APOYO AL HABITAT RURAL",                                             // 3
+  "NUESTRAS CIUDADES",                                                  // 4
+  "PROGRAMA NACIONAL DE SANEAMIENTO URBANO",                            // 5
+  "ACCIONES CENTRALES",                                                 // 6
+  "ASIGNACIONES PRESUPUESTARIAS QUE NO RESULTAN EN PRODUCTOS"           // 7
+];
+
+/* Normalizador: ignora tildes/casos/espacios extra para empatar nombres */
+const norm = s => String(s||"")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/\s+/g," ").trim().toUpperCase();
+
+/* Mapa de prioridad para ordenar rápido */
+const PRIORITY = (() => {
+  const m = new Map();
+  ORDER_PROGRAMS.forEach((name, i) => m.set(norm(name), i));
+  return m;
+})();
 
 /* Campos por nivel */
 const F={
-  programa:"programa_ppto_nombre",   // Nivel 1
-  oficina:"oficina",                 // Nivel 2
+  programa:"programa_ppto_nombre",
+  oficina:"oficina",
   pia:"monto_pia", pim:"monto_pim", cert:"monto_certificado",
   comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado",
-  fecha:"fecha_proceso"              // ← campo de fecha unificado
+  fecha:"fecha_proceso"
 };
 
 const fmt=new Intl.NumberFormat('es-PE');
@@ -182,7 +195,7 @@ async function query(){
   return j.features.map(f=>f.attributes);
 }
 
-/* Fecha de actualización (misma lógica que los otros apps) */
+/* Fecha de actualización */
 async function getMaxFecha(){
   const outStats=JSON.stringify([{statisticType:'max', onStatisticField:F.fecha, outStatisticFieldName:'max_fp'}]);
   const qs=new URLSearchParams({ where:WHERE, outStatistics:outStats, returnGeometry:'false', f:'json' });
@@ -225,12 +238,27 @@ function chevHTML(){ return `
     </svg>
   </span>`; }
 
+/* Ordena las claves de programa por PRIORITY y luego alfabético */
+function sortPrograms(keys){
+  return keys.sort((a,b)=>{
+    const na=norm(a), nb=norm(b);
+    const pa = PRIORITY.has(na) ? PRIORITY.get(na) : Number.POSITIVE_INFINITY;
+    const pb = PRIORITY.has(nb) ? PRIORITY.get(nb) : Number.POSITIVE_INFINITY;
+    if (pa !== pb) return pa - pb;
+    return na.localeCompare(nb); // los no listados se ordenan por nombre
+  });
+}
+
 /* Render */
 function render({tree,total}){
   const TB=document.getElementById('tbody'), TF=document.getElementById('tfoot');
   TB.innerHTML='';
 
-  for(const [prog, arr] of tree.entries()){
+  const orderedPrograms = sortPrograms(Array.from(tree.keys()));
+
+  for(const prog of orderedPrograms){
+    const arr = tree.get(prog) || [];
+
     // Agregados por programa
     const aggP={pia:0,pim:0,cert:0,comp:0,dev:0,gir:0};
     arr.forEach(x=>{ aggP.pia+=x.pia; aggP.pim+=x.pim; aggP.cert+=x.cert; aggP.comp+=x.comp; aggP.dev+=x.dev; aggP.gir+=x.gir; });
@@ -246,7 +274,7 @@ function render({tree,total}){
         ${cells(aggP)}
       </tr>`);
 
-    // Detalle por oficina
+    // Detalle por oficina (orden interno por PIM desc)
     arr.sort((a,b)=>b.pim-a.pim);
     arr.forEach(x=>{
       TB.insertAdjacentHTML('beforeend',`
