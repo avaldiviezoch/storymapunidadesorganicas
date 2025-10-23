@@ -3,67 +3,61 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Ejecución Presupuestal por Oficina según Fuente de Financiamiento y Especifica</title>
+<title>Ejecución Presupuestal por Oficina según Fuente de Financiamiento y Específica</title>
 <style>
   *,*::before,*::after{box-sizing:border-box}
   :root{
-    --bg:#ffffff; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
+    /* === MODO FLOTANTE: fondo transparente === */
+    --bg:transparent; --ink:#0f172a; --muted:#6b7280; --line:#e5e7eb;
     --ok:#16a34a; --mid:#f59e0b; --bad:#ef4444;
     --fs-body:13.5px; --fs-head:13.2px;
   }
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial;overflow:hidden}
-  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:10px}
-  .card{flex:1;max-width:1400px;background:#fff;border:1px solid var(--line);border-radius:12px;
-        box-shadow:0 10px 28px rgba(2,6,23,.06);display:flex;flex-direction:column;overflow:hidden}
-  .header{padding:10px;border-bottom:1px solid var(--line);text-align:center}
+
+  /* === Layout flotante (sin tarjeta, sin sombra, sin borde) === */
+  html,body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:system-ui, Segoe UI, Roboto, Arial; overflow:hidden;
+  }
+  .wrap{height:100vh;display:flex;align-items:stretch;justify-content:center;padding:0}
+  .card{
+    flex:1; max-width:1400px;
+    background:transparent; border:0; border-radius:0; box-shadow:none;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  .header{padding:10px 0 8px; border-bottom:0; text-align:center}
   .title{margin:0;font-weight:800;font-size:clamp(16px,2.2vw,22px)}
   .subtitle{margin:4px 0 0 0;color:var(--muted);font-size:12.5px}
 
-  .table-wrap{flex:1 1 auto;overflow:auto}
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-body)}
-  thead th{position:sticky;top:0;z-index:30;background:#1e293b;color:#fff;font-weight:800;text-align:center;
-           padding:9px;border-bottom:2px solid #0b1220}
-  thead th:first-child{left:0;z-index:40;position:sticky;background:#1e293b}
-  tbody td,tbody th{padding:8px;border-bottom:1px solid var(--line);background:#fff;vertical-align:middle}
+  /* Solo “cuadro” = tabla centrada y scroll interno */
+  .table-wrap{flex:1 1 auto; overflow:auto}
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:var(--fs-body); margin:0 auto}
+  thead th{
+    position:sticky; top:0; z-index:30; background:#1e293b; color:#fff; font-weight:800; text-align:center;
+    padding:9px; border-bottom:2px solid #0b1220
+  }
+  thead th:first-child{left:0; z-index:40; position:sticky; background:#1e293b}
+  tbody td,tbody th{padding:8px; border-bottom:1px solid var(--line); background:#fff; vertical-align:middle}
   tbody th{background:#f8fafc}
-  .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .pct{text-align:center;white-space:nowrap}
+  .num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+  .pct{text-align:center; white-space:nowrap}
 
-  /* === Rango con colores más vivos y alto contraste === */
+  /* === Chips de rango de alto contraste === */
   .rango{
-    display:inline-block;
-    padding:3px 9px;
-    border-radius:999px;
-    font-weight:900;
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:.3px;
-    line-height:1.05;
-    border:2px solid transparent;
+    display:inline-block; padding:3px 9px; border-radius:999px; font-weight:900; font-size:12px;
+    text-transform:uppercase; letter-spacing:.3px; line-height:1.05; border:2px solid transparent;
     box-shadow:0 4px 14px rgba(0,0,0,.06);
   }
-  /* Alto (verde intenso) */
   .rango.alto{
-    color:#065f46;                           /* texto verde oscuro para contraste */
-    background:#bbf7d0;                      /* verde claro MUY visible */
-    border-color:#10b981;                    /* borde saturado */
-    text-shadow:0 0 0 rgba(0,0,0,0);
+    color:#065f46; background:#bbf7d0; border-color:#10b981;
     box-shadow:0 0 0 2px rgba(16,185,129,.18) inset, 0 4px 14px rgba(16,185,129,.16);
   }
-  /* Medio (ámbar intenso) */
   .rango.medio{
-    color:#7c2d12;                           /* texto marrón para contraste */
-    background:#fde68a;                      /* ámbar claro brillante */
-    border-color:#f59e0b;                    /* borde saturado */
-    text-shadow:0 0 0 rgba(0,0,0,0);
+    color:#7c2d12; background:#fde68a; border-color:#f59e0b;
     box-shadow:0 0 0 2px rgba(245,158,11,.22) inset, 0 4px 14px rgba(245,158,11,.16);
   }
-  /* Bajo (rojo intenso) */
   .rango.bajo{
-    color:#7f1d1d;                           /* texto rojo oscuro para contraste */
-    background:#fecaca;                      /* rojo claro muy visible */
-    border-color:#ef4444;                    /* borde saturado */
-    text-shadow:0 0 0 rgba(0,0,0,0);
+    color:#7f1d1d; background:#fecaca; border-color:#ef4444;
     box-shadow:0 0 0 2px rgba(239,68,68,.22) inset, 0 4px 14px rgba(239,68,68,.16);
   }
 
@@ -72,28 +66,27 @@
   .h2{font-weight:400;font-size:14px}
   .h3{font-style:italic;font-size:13px}
 
-  /* Botón (ajuste para alinear texto multi-línea) */
+  /* Botones expansores */
   .btn{
-    border:0;background:transparent;cursor:pointer;font:inherit;color:inherit;
-    display:grid;grid-template-columns: 1.3rem 1fr;align-items:center;column-gap:.4rem;
-    text-align:left;
+    border:0; background:transparent; cursor:pointer; font:inherit; color:inherit;
+    display:grid; grid-template-columns:1.3rem 1fr; align-items:center; column-gap:.4rem; text-align:left;
   }
 
   /* Flechas animadas */
   .chev{
     --chev-color:#ea580c; --chev-glow:rgba(234,88,12,.45);
-    width:1.3rem;height:1.3rem;position:relative;display:inline-grid;place-items:center;color:var(--chev-color);
+    width:1.3rem; height:1.3rem; position:relative; display:inline-grid; place-items:center; color:var(--chev-color);
   }
-  .chev .arrow{position:absolute;width:16px;height:16px;opacity:0;filter:drop-shadow(0 5px 10px var(--chev-glow));animation:chevDrip 1.8s ease-in-out infinite}
+  .chev .arrow{position:absolute; width:16px; height:16px; opacity:0; filter:drop-shadow(0 5px 10px var(--chev-glow)); animation:chevDrip 1.8s ease-in-out infinite}
   .chev .arrow:nth-child(2){animation-delay:.22s}
   .chev .arrow:nth-child(3){animation-delay:.44s}
   @keyframes chevDrip{0%{transform:translateY(-8px) scale(.95);opacity:0}20%{transform:translateY(-2px) scale(1);opacity:1}60%{transform:translateY(6px) scale(1.04);opacity:.95}100%{transform:translateY(12px) scale(1);opacity:0}}
   .chev.segundo-nivel{--chev-color:#0ea5e9; --chev-glow:rgba(14,165,233,.45)}
 
-  tfoot td{background:#f8fafc;font-weight:900;padding:10px;border-top:2px solid #94a3b8}
+  tfoot td{background:#f8fafc; font-weight:900; padding:10px; border-top:2px solid #94a3b8}
 
-  /* Fuente/Fecha unificada */
-  .source{padding:8px 10px;border-top:1px solid var(--line);text-align:center;color:#334155;font-size:12.5px}
+  /* Franja de fuente/fecha SIN borde para mantener flotante */
+  .source{padding:8px 10px; text-align:center; color:#334155; font-size:12.5px; border-top:0}
   .source b{color:#0369a1}
 </style>
 </head>
@@ -101,7 +94,7 @@
 <div class="wrap">
   <div class="card">
     <div class="header">
-      <h2 class="title">Ejecución Presupuestal por Oficina según Fuente de Financiamiento y Especifica</h2>
+      <h2 class="title">Ejecución Presupuestal por Oficina según Fuente de Financiamiento y Específica</h2>
       <p class="subtitle">Rango: <strong>Bajo / Medio / Alto</strong></p>
     </div>
 
@@ -119,7 +112,6 @@
       </table>
     </div>
 
-    <!-- === Franja unificada de Fuente + Fecha === -->
     <p class="source">
       <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
       <em id="lastUpdate">Actualizado al —</em>
@@ -137,7 +129,7 @@ const F={
   espec:"especifica_det_nombre",
   pia:"monto_pia", pim:"monto_pim", cert:"monto_certificado",
   comp:"monto_comprometido_anual", dev:"monto_devengado", gir:"monto_girado",
-  fecha:"fecha_proceso" // ← campo de fecha (común a todos los apps)
+  fecha:"fecha_proceso"
 };
 
 const fmt=new Intl.NumberFormat('es-PE');
