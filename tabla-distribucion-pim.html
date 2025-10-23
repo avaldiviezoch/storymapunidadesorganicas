@@ -10,20 +10,35 @@
     --ink:#0b2532;
     --muted:#64748b;
     --card:#fff;
-    --bg:#ffffff; /* ← FONDO CAMBIADO A BLANCO */
+    --bg:#ffffff;
     --line:#e6ecea;
     --panel:#f7fbfa;
     --sel:#e8f5e9;
+    --footer-h:44px; /* altura del pie fijo */
   }
+
   html,body{
     margin:0;
     background:var(--bg);
     color:var(--ink);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial
   }
-  .wrap{max-width:1220px;margin:auto;padding:16px;display:grid;gap:16px}
 
-  .page-title{ text-align:center;font-weight:800;margin:0 0 6px 0;font-size:clamp(18px,2.6vw,26px) }
+  .wrap{
+    max-width:1220px;
+    margin:auto;
+    padding:16px;
+    padding-bottom:calc(16px + var(--footer-h)); /* deja espacio para el pie fijo */
+    display:grid;
+    gap:16px;
+  }
+
+  .page-title{
+    text-align:center;
+    font-weight:800;
+    margin:0 0 6px 0;
+    font-size:clamp(18px,2.6vw,26px);
+  }
 
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
@@ -51,12 +66,19 @@
   tbody tr.selected{background:var(--sel)}
   tbody td:nth-child(1), tbody td:nth-child(3), tbody td:nth-child(4){text-align:center}
 
-  /* Fuente/Fecha */
+  /* Fuente/Fecha fija al fondo */
   .source{
-    margin:4px 2px 2px 2px;
+    position:fixed;
+    left:0; right:0; bottom:0;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    min-height:var(--footer-h);
+    display:flex; align-items:center; justify-content:center;
+    padding:8px 10px;
     text-align:center;
     color:#334155;
     font-size:12.5px;
+    z-index:9999;
   }
   .source b{ color:#0369a1; }
 </style>
@@ -64,7 +86,6 @@
 <body>
 <div class="wrap">
 
-  <!-- FIX: se añadió el '>' faltante en el h1 -->
   <h1 class="page-title">Asignación presupuestal por Oficina del MVCS</h1>
 
   <div class="grid">
@@ -106,7 +127,7 @@
     </div>
   </div>
 
-  <!-- === Fuente + Fecha (misma para todos los aplicativos) === -->
+  <!-- Fuente fija -->
   <p class="source">
     <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
     <em id="lastUpdate">Actualizado al —</em>
@@ -125,7 +146,7 @@ const F = {
   dev:"monto_devengado",
   gir:"monto_girado",
   oficina: "oficina",
-  fecha: "fecha_proceso" // ← campo de fecha
+  fecha: "fecha_proceso"
 };
 
 const toM = v => (v||0)/1e6;
@@ -137,21 +158,17 @@ function fmtMontoTabla(v){
   if (v == null || isNaN(v)) return "—";
   const abs = Math.abs(v);
   const sign = v < 0 ? "-" : "";
-  if (abs < 1000){
-    return sign + abs.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
-  }
+  if (abs < 1000) return sign + abs.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
   if (abs < 1e6){
     const k = abs / 1e3;
-    if (k < 2) return sign + "1 mil";
-    return sign + Math.round(k).toLocaleString("es-PE") + " mil";
+    return sign + (k < 2 ? "1 mil" : Math.round(k).toLocaleString("es-PE")+" mil");
   }
   if (abs < 1e9){
     const m = abs / 1e6;
-    if (m < 2) return sign + "1 millón";
-    return sign + m.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " millones";
+    return sign + m.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})+" millones";
   }
   const b = abs / 1e9;
-  return sign + b.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " miles de millones";
+  return sign + b.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})+" miles de millones";
 }
 
 async function restQuery(params){
@@ -208,11 +225,8 @@ async function getAggByOficina(where){
   }) || [];
 }
 
-/* === Fecha de actualización (misma lógica para todos los apps) === */
 async function getMaxFecha(where){
-  const outStats = JSON.stringify([
-    { statisticType:"max", onStatisticField:F.fecha, outStatisticFieldName:"max_fp" }
-  ]);
+  const outStats = JSON.stringify([{ statisticType:"max", onStatisticField:F.fecha, outStatisticFieldName:"max_fp" }]);
   const data = await restQuery({ where, outStatistics: outStats, returnGeometry:"false", f:"json" });
   const a = data.features?.[0]?.attributes || {};
   const ts = (a.max_fp!=null) ? Number(a.max_fp) : null;
@@ -225,8 +239,8 @@ function formatEsDate(ts){
 }
 
 let selectedKey = null;
-
 const gauge = echarts.init(document.getElementById('gauge'));
+
 function setGauge(pct){
   const v = Math.max(0, Math.min(100, pct||0));
   const option = {
@@ -291,17 +305,13 @@ function highlightSelection(key){
     const [totals, rows, maxTs] = await Promise.all([
       getTotals(WHERE_BASE),
       getAggByOficina(WHERE_BASE),
-      getMaxFecha(WHERE_BASE) // ← max(fecha_proceso) para mostrar “Actualizado al …”
+      getMaxFecha(WHERE_BASE)
     ]);
     const totalPIM = totals.pim || rows.reduce((s,r)=>s+r.pim,0);
     window.__totalsBase = totals;
     renderKPIs(totals);
     renderTable(rows, totalPIM);
-
-    // Setear fecha en el pie de página
-    const last = document.getElementById('lastUpdate');
-    last.textContent = "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
-
+    document.getElementById('lastUpdate').textContent = "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
     document.getElementById('btnReset').addEventListener('click', ()=>{
       selectedKey = null;
       renderKPIs(window.__totalsBase);
