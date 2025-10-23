@@ -114,8 +114,8 @@
       const yQ05=quantile(allY,0.05), yQ95=quantile(allY,0.95);
       const padX=(xQ95-xQ05)*0.14, padY=(yQ95-yQ05)*0.14;
       const [xMinAll,xMaxAll]=extent(allX), [yMinAll,yMaxAll]=extent(allY);
-      const xMin=Math.max(0,Math.min(xQ05-padX,xMinAll) - 0.06);   // un poco más de base
-      const xMax=Math.max(xQ95+padX,xMaxAll) + 0.26;               // colchón superior-derecha
+      const xMin=Math.max(0,Math.min(xQ05-padX,xMinAll) - 0.06);
+      const xMax=Math.max(xQ95+padX,xMaxAll) + 0.26;
       const yMin=Math.max(0,Math.min(yQ05-padY,yMinAll) - 0.06);
       const yMax=Math.max(yQ95+padY,yMaxAll) + 0.26;
 
@@ -131,7 +131,7 @@
         const cats=['bajo','medio','alto'];
         return cats.map(cat=>({
           name:cat, type:'scatter',
-          // clip:true por defecto (¡no dejamos que salgan del grid!)
+          // clip:true por defecto (no se salen del grid)
           data:legendState[cat]?rows.filter(r=>r.cat===cat).map(toPoint):[],
           symbolSize:val=>sizeFn(val[0]),
           label:{show:false}
@@ -153,8 +153,8 @@
           }
         },
 
-        /* márgenes amplios para etiquetas/zoom */
-        grid:{top:112,left:96,right:64,bottom:96,containLabel:true},
+        /* márgenes amplios para etiquetas/zoom y el título vertical */
+        grid:{top:112,left:112,right:64,bottom:96,containLabel:true},
 
         xAxis:{
           type:'value',
@@ -170,11 +170,11 @@
           name:'Log(Devengado, millones S/)',
           nameLocation:'middle',
           nameRotate:90,      // vertical
-          nameGap:16,         // pegado a la línea
+          nameGap:40,         // ← MÁS AIRE respecto a los números
           nameTextStyle:{fontSize:14,align:'center',verticalAlign:'middle'},
           min:yMin, max:yMax,
           splitLine:{show:true}, scale:true,
-          axisLabel:{margin:8,formatter:v=>pf1.format(v)}
+          axisLabel:{margin:10,formatter:v=>pf1.format(v)}  // ← separamos un poco los ticks de la línea
         },
 
         dataZoom:[
@@ -216,4 +216,3 @@
   </script>
 </body>
 </html>
-
