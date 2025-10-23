@@ -6,39 +6,34 @@
   <title>PIM vs Devengado por Oficina — 2025</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <style>
-    html,body{height:100%;margin:0;background:#fff;font-family:system-ui,Arial;display:flex;flex-direction:column}
-    #wrap{flex:1;position:relative;width:100%}
-    #chart{height:100%;width:100%}
+    html,body{
+      height:100%; margin:0; background:#fff;
+      font-family:system-ui,Arial; display:flex; flex-direction:column;
+    }
+    #wrap{flex:1; position:relative; width:100%}
+    #chart{height:100%; width:100%}
 
     /* Leyenda reducida */
     .legend-inline{
-      position:absolute;
-      left:50%; transform:translateX(-50%);
-      top:46px; z-index:10;
+      position:absolute; left:50%; transform:translateX(-50%); top:46px; z-index:10;
       display:flex; gap:10px; align-items:center; flex-wrap:wrap;
       background:rgba(255,255,255,.9);
-      border:1px solid #e5e7eb; border-radius:10px;
-      padding:4px 10px;
-      box-shadow:0 2px 10px rgba(0,0,0,.05);
-      font-size:11px; color:#374151;
-      pointer-events:auto;
-      user-select:none;
+      border:1px solid #e5e7eb; border-radius:10px; padding:4px 10px;
+      box-shadow:0 2px 10px rgba(0,0,0,.05); font-size:11px; color:#374151;
+      pointer-events:auto; user-select:none;
     }
-    .lg-title{font-weight:700;margin-right:4px}
+    .lg-title{font-weight:700; margin-right:4px}
     .lg-chip{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.08);flex:0 0 auto}
-    .legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 5px;border-radius:8px;transition:background .15s ease}
+    .legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 5px;border-radius:8px;transition:background .15s}
     .legend-item:hover{background:#f8fafc}
     .legend-item.off{opacity:.45;filter:grayscale(.25)}
-    @media (max-width: 720px){.legend-inline{top:56px}}
+    @media (max-width:720px){.legend-inline{top:56px}}
 
-    /* Nota al pie (fuera del gráfico) */
+    /* Nota al pie */
     .note{
-      font-size:11px; font-style:italic; color:#6b7280;
-      text-align:center; padding:6px 12px 10px;
-      background:#fff;
-      border-top:1px solid #e5e7eb;
-      width:100%;
-      box-shadow:0 -1px 4px rgba(0,0,0,.04);
+      font-size:11px; font-style:italic; color:#6b7280; text-align:center;
+      padding:6px 12px 10px; background:#fff; border-top:1px solid #e5e7eb;
+      width:100%; box-shadow:0 -1px 4px rgba(0,0,0,.04);
     }
   </style>
 </head>
@@ -60,7 +55,6 @@
     </div>
   </div>
 
-  <!-- Nota al pie fuera del gráfico -->
   <p class="note">
     Nota: Los ejes se muestran en escala logarítmica para facilitar la comparación entre oficinas con presupuestos muy distintos.
   </p>
@@ -70,15 +64,18 @@
   const SERVICE="https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
   const WHERE="pliego = '037' AND ejecutora = '001' AND ano_eje = 2025";
   const F={ oficina:"oficina", pim:"monto_pim", dev:"monto_devengado" };
-  function qs(url,params){return url+"?"+new URLSearchParams(params).toString();}
-  function extent(a){let m=+Infinity,M=-Infinity;for(const v of a)if(Number.isFinite(v)){if(v<m)m=v;if(v>M)M=v}return(Number.isFinite(m)&&Number.isFinite(M))?[m,M]:[0,1];}
-  function quantile(a,q){const s=a.slice().sort((x,y)=>x-y);if(!s.length)return NaN;const p=(s.length-1)*q,lo=Math.floor(p),hi=Math.ceil(p);return lo===hi?s[lo]:s[hi]+(s[hi]-s[lo])*(p-lo);}
+
   const pf1=new Intl.NumberFormat('es-PE',{maximumFractionDigits:1});
   const pf2=new Intl.NumberFormat('es-PE',{maximumFractionDigits:2});
   const toM=v=>(v||0)/1e6;
-  function avanceCategory(p){if(!Number.isFinite(p))return 'sindato';if(p<30)return'bajo';if(p<70)return'medio';return'alto';}
-  const COLOR={bajo:'#e74c3c',medio:'#f39c12',alto:'#2ecc71',sindato:'#9e9e9e'};
-  function makeSizeFn(vs,minPx=10,maxPx=58){const[mn,mx]=extent(vs);return x=>{const v=Math.max(0,Number(x)||0);let t=(mx>mn)?(v-mn)/(mx-mn):0.5;t=Math.max(0,Math.min(1,t));return minPx+Math.sqrt(t)*(maxPx-minPx);};}
+
+  function qs(url,params){ return url+"?"+new URLSearchParams(params).toString(); }
+  function extent(a){ let m=+Infinity,M=-Infinity; for(const v of a) if(Number.isFinite(v)){ if(v<m)m=v; if(v>M)M=v; } return (Number.isFinite(m)&&Number.isFinite(M))?[m,M]:[0,1]; }
+  function quantile(a,q){ const s=a.slice().sort((x,y)=>x-y); if(!s.length) return NaN; const p=(s.length-1)*q, lo=Math.floor(p), hi=Math.ceil(p); return lo===hi?s[lo]:s[hi]+(s[hi]-s[lo])*(p-lo); }
+  function avanceCategory(p){ if(!Number.isFinite(p))return 'sindato'; if(p<30)return'bajo'; if(p<70)return'medio'; return'alto'; }
+  const COLOR={ bajo:'#e74c3c', medio:'#f39c12', alto:'#2ecc71', sindato:'#9e9e9e' };
+  function makeSizeFn(vs,minPx=10,maxPx=58){ const [mn,mx]=extent(vs); return x=>{ const v=Math.max(0,Number(x)||0); let t=(mx>mn)?(v-mn)/(mx-mn):0.5; t=Math.max(0,Math.min(1,t)); return minPx+Math.sqrt(t)*(maxPx-minPx); }; }
+
   async function fetchAggOficinas(){
     const outStats=JSON.stringify([
       {statisticType:"sum",onStatisticField:F.pim,outStatisticFieldName:"sum_pim"},
@@ -90,47 +87,57 @@
     const j=await res.json();
     if(j.error)throw new Error(j.error.message||"Error del servicio");
     return (j.features||[]).map(f=>{
-      const a=f.attributes||{};const name=a[F.oficina]??"(Sin oficina)";
-      const pim=a.sum_pim||0,dev=a.sum_dev||0;
-      const x=toM(pim),y=toM(dev),avance=(!pim||pim<=0)?NaN:(dev/pim*100);
-      const cat=avanceCategory(avance);
+      const a=f.attributes||{}; const name=a[F.oficina]??"(Sin oficina)";
+      const pim=a.sum_pim||0, dev=a.sum_dev||0;
+      const x=toM(pim), y=toM(dev), av=(!pim||pim<=0)?NaN:(dev/pim*100);
+      const cat=avanceCategory(av);
       const xLog=Number.isFinite(x)&&x>0?Math.log10(x):NaN;
       const yLog=Number.isFinite(y)&&y>0?Math.log10(y):NaN;
-      return{name,pim,dev,xM:x,yM:y,xLog,yLog,avance,cat};
+      return {name,pim,dev,xM:x,yM:y,xLog,yLog,av,cat};
     }).filter(r=>Number.isFinite(r.xLog)&&Number.isFinite(r.yLog));
   }
+
   const legendState={bajo:true,medio:true,alto:true};
+
   (async function run(){
     const chart=echarts.init(document.getElementById('chart'));
     try{
       chart.showLoading({text:'Cargando datos…'});
       const rows=await fetchAggOficinas();
-      if(!rows.length)throw new Error('No se encontraron datos por oficina.');
-      const allX=rows.map(r=>r.xLog),allY=rows.map(r=>r.yLog);
+      if(!rows.length) throw new Error('No se encontraron datos por oficina.');
+
+      const allX=rows.map(r=>r.xLog), allY=rows.map(r=>r.yLog);
       const sizeFn=makeSizeFn(allX,10,70);
-      const xQ05=quantile(allX,0.05),xQ95=quantile(allX,0.95);
-      const yQ05=quantile(allY,0.05),yQ95=quantile(allY,0.95);
-      const xPad=(xQ95-xQ05)*0.08,yPad=(yQ95-yQ05)*0.08;
-      const[xMinAll,xMaxAll]=extent(allX),[yMinAll,yMaxAll]=extent(allY);
-      const xInitMin=Math.max(0,Math.min(xQ05-xPad,xMinAll));
-      const xInitMax=Math.max(xQ95+xPad,xMaxAll);
-      const yInitMin=Math.max(0,Math.min(yQ05-yPad,yMinAll));
-      const yInitMax=Math.max(yQ95+yPad,yMaxAll);
+
+      // Rango inicial + colchón extra (para que quepan las burbujas DENTRO del grid con clip=true)
+      const xQ05=quantile(allX,0.05), xQ95=quantile(allX,0.95);
+      const yQ05=quantile(allY,0.05), yQ95=quantile(allY,0.95);
+      const padX=(xQ95-xQ05)*0.14, padY=(yQ95-yQ05)*0.14;
+      const [xMinAll,xMaxAll]=extent(allX), [yMinAll,yMaxAll]=extent(allY);
+      const xMin=Math.max(0,Math.min(xQ05-padX,xMinAll) - 0.06);   // un poco más de base
+      const xMax=Math.max(xQ95+padX,xMaxAll) + 0.26;               // colchón superior-derecha
+      const yMin=Math.max(0,Math.min(yQ05-padY,yMinAll) - 0.06);
+      const yMax=Math.max(yQ95+padY,yMaxAll) + 0.26;
+
       function toPoint(r){
-        return{
-          value:[r.xLog,r.yLog,r.name,r.avance],
+        return {
+          value:[r.xLog,r.yLog,r.name,r.av],
           itemStyle:{color:COLOR[r.cat],opacity:DOT_BORDER.opacity,borderColor:DOT_BORDER.color,borderWidth:DOT_BORDER.width,borderType:DOT_BORDER.type},
           emphasis:{itemStyle:{borderColor:DOT_BORDER.color,borderWidth:Math.max(DOT_BORDER.width+0.5,DOT_BORDER.width)},scale:1.08,focus:'self'}
         };
       }
+
       function buildSeries(){
         const cats=['bajo','medio','alto'];
         return cats.map(cat=>({
-          name:cat,type:'scatter',
+          name:cat, type:'scatter',
+          // clip:true por defecto (¡no dejamos que salgan del grid!)
           data:legendState[cat]?rows.filter(r=>r.cat===cat).map(toPoint):[],
-          symbolSize:val=>sizeFn(val[0]),label:{show:false}
+          symbolSize:val=>sizeFn(val[0]),
+          label:{show:false}
         }));
       }
+
       const option={
         title:[
           {text:'2025',right:140,bottom:48,textAlign:'right',textStyle:{fontSize:32,fontWeight:700,color:'#e5e7eb'}},
@@ -139,27 +146,53 @@
         tooltip:{
           padding:6,borderWidth:1,
           formatter:obj=>{
-            const[xLog,yLog,name,avc]=obj.value;
-            const xM=Math.pow(10,xLog),yM=Math.pow(10,yLog);
+            const [xLog,yLog,name,avc]=obj.value;
+            const xM=Math.pow(10,xLog), yM=Math.pow(10,yLog);
             const aTxt=Number.isFinite(avc)?pf1.format(avc)+' %':'—';
             return `<b>Oficina:</b> ${name}<br><b>PIM (X):</b> S/ ${pf2.format(xM)} mill.<br><b>Devengado (Y):</b> S/ ${pf2.format(yM)} mill.<br><b>Avance (Color):</b> ${aTxt}`;
           }
         },
-        grid:{top:86,left:52,right:26,bottom:60,containLabel:true},
-        xAxis:{type:'value',name:'Log(PIM, millones S/)',min:xInitMin,max:xInitMax,nameGap:25,nameLocation:'middle',nameTextStyle:{fontSize:14},splitLine:{show:true},scale:true,axisLabel:{formatter:v=>pf1.format(v)}},
-        yAxis:{type:'value',name:'Log(Devengado, millones S/)',min:yInitMin,max:yInitMax,nameTextStyle:{fontSize:14},splitLine:{show:true},scale:true,axisLabel:{formatter:v=>pf1.format(v)}},
+
+        /* márgenes amplios para etiquetas/zoom */
+        grid:{top:112,left:96,right:64,bottom:96,containLabel:true},
+
+        xAxis:{
+          type:'value',
+          name:'Log(PIM, millones S/)',
+          nameLocation:'middle', nameGap:26,
+          min:xMin, max:xMax,
+          nameTextStyle:{fontSize:14},
+          splitLine:{show:true}, scale:true,
+          axisLabel:{margin:8,formatter:v=>pf1.format(v)}
+        },
+        yAxis:{
+          type:'value',
+          name:'Log(Devengado, millones S/)',
+          nameLocation:'middle',
+          nameRotate:90,      // vertical
+          nameGap:16,         // pegado a la línea
+          nameTextStyle:{fontSize:14,align:'center',verticalAlign:'middle'},
+          min:yMin, max:yMax,
+          splitLine:{show:true}, scale:true,
+          axisLabel:{margin:8,formatter:v=>pf1.format(v)}
+        },
+
         dataZoom:[
           {type:'slider',xAxisIndex:0,filterMode:'none',bottom:12,height:28},
           {type:'inside',xAxisIndex:0,filterMode:'none'},
           {type:'slider',yAxisIndex:0,filterMode:'none',right:6,width:12},
           {type:'inside',yAxisIndex:0,filterMode:'none'}
         ],
+
         series:buildSeries(),
         animationDurationUpdate:800,
         animationEasingUpdate:'quinticInOut'
       };
+
       chart.hideLoading();
       chart.setOption(option);
+
+      // Interacciones de leyenda
       document.querySelectorAll('#legend .legend-item[data-key]').forEach(el=>{
         el.addEventListener('click',()=>{
           const key=el.getAttribute('data-key');
@@ -168,9 +201,12 @@
           chart.setOption({series:buildSeries()},{replaceMerge:['series']});
         });
       });
+
       window.addEventListener('resize',()=>chart.resize());
+
     }catch(err){
       console.error(err);
+      const chart=echarts.getInstanceByDom(document.getElementById('chart'));
       chart.setOption({
         title:{text:'Error al cargar datos',left:'center'},
         graphic:{type:'text',left:'center',top:'middle',style:{text:(err&&err.message)?err.message:'Fallo de carga.',fontSize:14}}
@@ -180,3 +216,4 @@
   </script>
 </body>
 </html>
+
