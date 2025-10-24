@@ -90,7 +90,9 @@
     display:grid;
     grid-template-rows:auto 1fr;
     gap:8px;
-    position:relative
+    position:relative;
+    justify-items:center;      /* <-- centramos contenido horizontal */
+    text-align:center;         /* <-- centramos textos */
   }
   .g-title{
     font-weight:700;
@@ -104,9 +106,10 @@
     margin-top:2px
   }
   #gauge{
-    width:100%;
+    width:220px;               /* <-- ancho fijo centrado */
+    max-width:100%;
     height:190px;
-    place-self:center
+    margin:0 auto;
   }
   .icon-btn{
     position:absolute;
@@ -404,20 +407,16 @@ function setGauge(pct){
       center:['50%','62%'],
       radius:'92%',
 
-      // mantenemos puntero
       pointer:{show:true,width:4,length:'58%'},
-
-      // quitamos la banda de progreso azul
       progress:{show:false},
 
-      // aro semaforizado más grueso
       axisLine:{
         lineStyle:{
           width:20,
           color:[
-            [0.30,'#e74c3c'],  // rojo
-            [0.70,'#f39c12'],  // ámbar
-            [1,'#2ecc71']      // verde
+            [0.30,'#e74c3c'],  /* rojo */
+            [0.70,'#f39c12'],  /* ámbar */
+            [1,'#2ecc71']      /* verde */
           ]
         }
       },
@@ -481,12 +480,10 @@ function renderTable(rows, totalPIM){
 
     tr.addEventListener('click', async ()=>{
       if(selectedKey === r.key){
-        // des-seleccionar
         selectedKey = null;
         renderKPIs(window.__totalsBase);
         highlightSelection(null);
       }else{
-        // seleccionar esa oficina
         selectedKey = r.key;
         const whereSel = `${WHERE_BASE} AND ${F.oficina}='${String(r.key).replace(/'/g,"''")}'`;
         const t = await getTotals(whereSel);
