@@ -14,21 +14,26 @@
     --line:#e6ecea;
     --panel:#f7fbfa;
     --sel:#e8f5e9;
-    --footer-h:44px; /* altura del pie fijo */
+    --footer-h:44px;
   }
 
+  /* layout base: footer abajo sin tapar nada */
   html,body{
     margin:0;
     background:var(--bg);
     color:var(--ink);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
   }
 
   .wrap{
+    flex:1 0 auto;
     max-width:1220px;
     margin:auto;
     padding:16px;
-    padding-bottom:calc(16px + var(--footer-h)); /* deja espacio para el pie fijo */
+    padding-bottom:16px;
     display:grid;
     gap:16px;
   }
@@ -40,50 +45,145 @@
     font-size:clamp(18px,2.6vw,26px);
   }
 
-  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:16px
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px
+  }
 
   /* KPIs */
-  .kpis{grid-column:span 8;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  .kpi{background:#0b3b38;color:#fff;border-radius:12px;padding:12px;display:grid;place-items:center;text-align:center}
-  .kpi h4{margin:0 0 4px 0;font-size:13px;opacity:.95}
-  .kpi .val{font-size:22px;font-weight:800}
+  .kpis{
+    grid-column:span 8;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px
+  }
+  .kpi{
+    background:#0b3b38;
+    color:#fff;
+    border-radius:12px;
+    padding:12px;
+    display:grid;
+    place-items:center;
+    text-align:center
+  }
+  .kpi h4{
+    margin:0 0 4px 0;
+    font-size:13px;
+    opacity:.95
+  }
+  .kpi .val{
+    font-size:22px;
+    font-weight:800
+  }
 
   /* Velocímetro */
-  .gauge{grid-column:span 4;min-height:230px;display:grid;grid-template-rows:auto 1fr;gap:8px;position:relative}
-  .g-title{font-weight:700;text-align:center;margin:0}
-  .g-sub{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
-  #gauge{width:100%;height:190px;place-self:center}
-  .icon-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;font-size:18px;line-height:1}
+  .gauge{
+    grid-column:span 4;
+    min-height:230px;
+    display:grid;
+    grid-template-rows:auto 1fr;
+    gap:8px;
+    position:relative
+  }
+  .g-title{
+    font-weight:700;
+    text-align:center;
+    margin:0
+  }
+  .g-sub{
+    font-size:12px;
+    color:var(--muted);
+    text-align:center;
+    margin-top:2px
+  }
+  #gauge{
+    width:100%;
+    height:190px;
+    place-self:center
+  }
+  .icon-btn{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:32px;
+    height:32px;
+    display:grid;
+    place-items:center;
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:18px;
+    line-height:1
+  }
   .icon-btn:hover{background:#fafafa}
 
   /* Tabla */
   .table-card{grid-column:span 12}
-  table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  thead th{background:var(--panel);text-align:center;font-size:13px;color:var(--ink);font-weight:700;padding:10px;border-bottom:1px solid var(--line)}
-  tbody td{padding:10px;border-bottom:1px solid var(--line);font-size:14px}
-  tbody tr:hover{background:#fafafa;cursor:pointer}
-  tbody tr.selected{background:var(--sel)}
-  tbody td:nth-child(1), tbody td:nth-child(3), tbody td:nth-child(4){text-align:center}
+  table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden
+  }
+  thead th{
+    background:var(--panel);
+    text-align:center;
+    font-size:13px;
+    color:var(--ink);
+    font-weight:700;
+    padding:10px;
+    border-bottom:1px solid var(--line)
+  }
+  tbody td{
+    padding:10px;
+    border-bottom:1px solid var(--line);
+    font-size:14px
+  }
+  tbody tr:hover{
+    background:#fafafa;
+    cursor:pointer
+  }
+  tbody tr.selected{
+    background:var(--sel)
+  }
+  /* centramos columnas índice y numéricas excepto la 2 (nombre) */
+  tbody td:nth-child(1),
+  tbody td:nth-child(3),
+  tbody td:nth-child(4),
+  tbody td:nth-child(5),
+  tbody td:nth-child(6){
+    text-align:center
+  }
 
-  /* Fuente/Fecha fija al fondo */
+  /* Footer/base */
   .source{
-    position:fixed;
-    left:0; right:0; bottom:0;
+    flex:0 0 var(--footer-h);
     background:var(--card);
     border-top:1px solid var(--line);
     min-height:var(--footer-h);
-    display:flex; align-items:center; justify-content:center;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     padding:8px 10px;
     text-align:center;
     color:#334155;
     font-size:12.5px;
-    z-index:9999;
   }
   .source b{ color:#0369a1; }
 </style>
 </head>
 <body>
+
 <div class="wrap">
 
   <h1 class="page-title">Asignación presupuestal por Oficina del MVCS</h1>
@@ -119,6 +219,7 @@
               <th>Oficina (Ejecutora)</th>
               <th>PIM</th>
               <th>% del PIM total</th>
+              <th>Avance %</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -126,13 +227,13 @@
       </div>
     </div>
   </div>
-
-  <!-- Fuente fija -->
-  <p class="source">
-    <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
-    <em id="lastUpdate">Actualizado al —</em>
-  </p>
 </div>
+
+<!-- Footer/base -->
+<p class="source">
+  <b>Fuente:</b> Ministerio de Economía y Finanzas — MEF · Portal de Datos Abiertos ·
+  <em id="lastUpdate">Actualizado al —</em>
+</p>
 
 <script>
 const SERVICE = "https://pportalgis.vivienda.gob.pe/pfdserver/rest/services/OGEI/Mapa_Inversiones_MEF/MapServer/13/query";
@@ -150,27 +251,47 @@ const F = {
 };
 
 const toM = v => (v||0)/1e6;
-const fmtM = v => `${toM(v).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})} mill.`;
-const fmtPct = v => (v==null||isNaN(v)) ? "—" : `${v.toFixed(1)}%`;
-const avance = (dev,pim)=> (!pim||pim<=0)?0:(dev/pim*100);
+const fmtM = v =>
+  `${toM(v).toLocaleString("es-PE",{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  })} mill.`;
+
+const fmtPct = v =>
+  (v==null||isNaN(v)) ? "—" : `${v.toFixed(1)}%`;
+
+const avance = (dev,pim)=>
+  (!pim||pim<=0)?0:(dev/pim*100);
 
 function fmtMontoTabla(v){
   if (v == null || isNaN(v)) return "—";
   const abs = Math.abs(v);
   const sign = v < 0 ? "-" : "";
-  if (abs < 1000) return sign + abs.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (abs < 1000){
+    return sign + abs.toLocaleString("es-PE",{
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    });
+  }
   if (abs < 1e6){
     const k = abs / 1e3;
     return sign + (k < 2 ? "1 mil" : Math.round(k).toLocaleString("es-PE")+" mil");
   }
   if (abs < 1e9){
     const m = abs / 1e6;
-    return sign + m.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})+" millones";
+    return sign + m.toLocaleString("es-PE",{
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    })+" millones";
   }
   const b = abs / 1e9;
-  return sign + b.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})+" miles de millones";
+  return sign + b.toLocaleString("es-PE",{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  })+" miles de millones";
 }
 
+/* --- REST helper --- */
 async function restQuery(params){
   const qs = new URLSearchParams(params);
   const url = SERVICE + "?" + qs.toString();
@@ -181,6 +302,7 @@ async function restQuery(params){
   return json;
 }
 
+/* Totales generales para KPIs y gauge */
 async function getTotals(where){
   const outStats = JSON.stringify([
     { statisticType:"sum", onStatisticField:F.pia,  outStatisticFieldName:"sum_pia"  },
@@ -190,19 +312,32 @@ async function getTotals(where){
     { statisticType:"sum", onStatisticField:F.dev,  outStatisticFieldName:"sum_dev"  },
     { statisticType:"sum", onStatisticField:F.gir,  outStatisticFieldName:"sum_gir"  }
   ]);
-  const data = await restQuery({ where, outStatistics: outStats, returnGeometry:"false", f:"json" });
+  const data = await restQuery({
+    where,
+    outStatistics: outStats,
+    returnGeometry:"false",
+    f:"json"
+  });
   const a = data.features?.[0]?.attributes || {};
-  return { pia:+a.sum_pia||0, pim:+a.sum_pim||0, cert:+a.sum_cert||0, comp:+a.sum_comp||0, dev:+a.sum_dev||0, gir:+a.sum_gir||0 };
+  return {
+    pia:+a.sum_pia||0,
+    pim:+a.sum_pim||0,
+    cert:+a.sum_cert||0,
+    comp:+a.sum_comp||0,
+    dev:+a.sum_dev||0,
+    gir:+a.sum_gir||0
+  };
 }
 
+/* Agregado por oficina */
 async function getAggByOficina(where){
   const outStats = JSON.stringify([
-    { statisticType:"sum", onStatisticField:F.pim, outStatisticFieldName:"sum_pim" },
-    { statisticType:"sum", onStatisticField:F.pia, outStatisticFieldName:"sum_pia" },
-    { statisticType:"sum", onStatisticField:F.dev, outStatisticFieldName:"sum_dev" },
-    { statisticType:"sum", onStatisticField:F.cert,outStatisticFieldName:"sum_cert" },
-    { statisticType:"sum", onStatisticField:F.comp,outStatisticFieldName:"sum_comp" },
-    { statisticType:"sum", onStatisticField:F.gir, outStatisticFieldName:"sum_gir" }
+    { statisticType:"sum", onStatisticField:F.pim,  outStatisticFieldName:"sum_pim"  },
+    { statisticType:"sum", onStatisticField:F.pia,  outStatisticFieldName:"sum_pia"  },
+    { statisticType:"sum", onStatisticField:F.dev,  outStatisticFieldName:"sum_dev"  },
+    { statisticType:"sum", onStatisticField:F.cert, outStatisticFieldName:"sum_cert" },
+    { statisticType:"sum", onStatisticField:F.comp, outStatisticFieldName:"sum_comp" },
+    { statisticType:"sum", onStatisticField:F.gir,  outStatisticFieldName:"sum_gir"  }
   ]);
   const data = await restQuery({
     where,
@@ -219,15 +354,27 @@ async function getAggByOficina(where){
     return {
       key: nombre,
       name: nombre,
-      pia: +a.sum_pia||0, pim:+a.sum_pim||0, dev:+a.sum_dev||0,
-      cert:+a.sum_cert||0, comp:+a.sum_comp||0, gir:+a.sum_gir||0
+      pia: +a.sum_pia||0,
+      pim: +a.sum_pim||0,
+      dev: +a.sum_dev||0,
+      cert:+a.sum_cert||0,
+      comp:+a.sum_comp||0,
+      gir: +a.sum_gir||0
     };
   }) || [];
 }
 
+/* Fecha de actualización */
 async function getMaxFecha(where){
-  const outStats = JSON.stringify([{ statisticType:"max", onStatisticField:F.fecha, outStatisticFieldName:"max_fp" }]);
-  const data = await restQuery({ where, outStatistics: outStats, returnGeometry:"false", f:"json" });
+  const outStats = JSON.stringify([
+    { statisticType:"max", onStatisticField:F.fecha, outStatisticFieldName:"max_fp" }
+  ]);
+  const data = await restQuery({
+    where,
+    outStatistics: outStats,
+    returnGeometry:"false",
+    f:"json"
+  });
   const a = data.features?.[0]?.attributes || {};
   const ts = (a.max_fp!=null) ? Number(a.max_fp) : null;
   return Number.isFinite(ts) ? ts : null;
@@ -235,32 +382,70 @@ async function getMaxFecha(where){
 function formatEsDate(ts){
   if(!Number.isFinite(ts)) return "—";
   const d = new Date(ts);
-  return new Intl.DateTimeFormat("es-PE", { day:"2-digit", month:"long", year:"numeric" }).format(d);
+  return new Intl.DateTimeFormat("es-PE", {
+    day:"2-digit", month:"long", year:"numeric"
+  }).format(d);
 }
 
-let selectedKey = null;
+/* ===== Gauge ===== */
 const gauge = echarts.init(document.getElementById('gauge'));
 
 function setGauge(pct){
   const v = Math.max(0, Math.min(100, pct||0));
+
   const option = {
     series:[{
-      type:'gauge', min:0, max:100, startAngle:220, endAngle:-40, splitNumber:5,
-      center:['50%','62%'], radius:'92%',
+      type:'gauge',
+      min:0,
+      max:100,
+      startAngle:220,
+      endAngle:-40,
+      splitNumber:5,
+      center:['50%','62%'],
+      radius:'92%',
+
+      // mantenemos puntero
       pointer:{show:true,width:4,length:'58%'},
-      progress:{show:true,width:12,roundCap:true},
-      axisLine:{lineStyle:{width:12,color:[[0.30,'#e74c3c'],[0.70,'#f39c12'],[1,'#2ecc71']]}},
+
+      // quitamos la banda de progreso azul
+      progress:{show:false},
+
+      // aro semaforizado más grueso
+      axisLine:{
+        lineStyle:{
+          width:20,
+          color:[
+            [0.30,'#e74c3c'],  // rojo
+            [0.70,'#f39c12'],  // ámbar
+            [1,'#2ecc71']      // verde
+          ]
+        }
+      },
+
       axisTick:{show:false},
       splitLine:{length:12,lineStyle:{width:2,color:'#c0c7cd'}},
-      axisLabel:{distance:12,fontSize:12,color:'#4b5563',formatter:v=>String(v)},
+      axisLabel:{
+        distance:12,
+        fontSize:12,
+        color:'#4b5563',
+        formatter:v=>String(v)
+      },
       title:{show:false},
-      detail:{valueAnimation:true,fontSize:15,fontWeight:800,offsetCenter:[0,'26%'],formatter:(val)=>`${val}%`},
+      detail:{
+        valueAnimation:true,
+        fontSize:15,
+        fontWeight:800,
+        offsetCenter:[0,'26%'],
+        formatter:(val)=>`${val}%`
+      },
       data:[{ value:+v.toFixed(1) }]
     }]
   };
+
   gauge.setOption(option);
 }
 
+/* KPIs */
 function renderKPIs(t){
   document.getElementById('kpiPIA').textContent  = fmtM(t.pia);
   document.getElementById('kpiPIM').textContent  = fmtM(t.pim);
@@ -271,18 +456,37 @@ function renderKPIs(t){
   setGauge(avance(t.dev,t.pim));
 }
 
+/* Tabla */
+let selectedKey = null;
+window.__totalsBase = null;
+
 function renderTable(rows, totalPIM){
-  const tb = document.getElementById('tbody'); tb.innerHTML='';
+  const tb = document.getElementById('tbody');
+  tb.innerHTML='';
+
   rows.forEach((r,i)=>{
-    const tr=document.createElement('tr'); tr.dataset.key = r.key;
-    const pct = !totalPIM ? 0 : r.pim/totalPIM*100;
-    tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td>${fmtMontoTabla(r.pim)}</td><td>${fmtPct(pct)}</td>`;
+    const tr=document.createElement('tr');
+    tr.dataset.key = r.key;
+
+    const pctTotal  = !totalPIM ? 0 : (r.pim/totalPIM*100);
+    const pctAvance = avance(r.dev, r.pim); // Devengado / PIM * 100
+
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${r.name}</td>
+      <td>${fmtMontoTabla(r.pim)}</td>
+      <td>${fmtPct(pctTotal)}</td>
+      <td>${fmtPct(pctAvance)}</td>
+    `;
+
     tr.addEventListener('click', async ()=>{
       if(selectedKey === r.key){
+        // des-seleccionar
         selectedKey = null;
         renderKPIs(window.__totalsBase);
         highlightSelection(null);
       }else{
+        // seleccionar esa oficina
         selectedKey = r.key;
         const whereSel = `${WHERE_BASE} AND ${F.oficina}='${String(r.key).replace(/'/g,"''")}'`;
         const t = await getTotals(whereSel);
@@ -290,16 +494,22 @@ function renderTable(rows, totalPIM){
         highlightSelection(r.key);
       }
     });
+
     tb.appendChild(tr);
   });
 }
 
 function highlightSelection(key){
   document.querySelectorAll('#tbody tr').forEach(tr=>{
-    if(key && tr.dataset.key===key) tr.classList.add('selected'); else tr.classList.remove('selected');
+    if(key && tr.dataset.key===key){
+      tr.classList.add('selected');
+    }else{
+      tr.classList.remove('selected');
+    }
   });
 }
 
+/* ===== Init ===== */
 (async function init(){
   try{
     const [totals, rows, maxTs] = await Promise.all([
@@ -307,11 +517,16 @@ function highlightSelection(key){
       getAggByOficina(WHERE_BASE),
       getMaxFecha(WHERE_BASE)
     ]);
+
     const totalPIM = totals.pim || rows.reduce((s,r)=>s+r.pim,0);
+
     window.__totalsBase = totals;
     renderKPIs(totals);
     renderTable(rows, totalPIM);
-    document.getElementById('lastUpdate').textContent = "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
+
+    document.getElementById('lastUpdate').textContent =
+      "Actualizado al " + (maxTs ? formatEsDate(maxTs) : "—");
+
     document.getElementById('btnReset').addEventListener('click', ()=>{
       selectedKey = null;
       renderKPIs(window.__totalsBase);
